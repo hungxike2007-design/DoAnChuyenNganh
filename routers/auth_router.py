@@ -1,0 +1,125 @@
+"""
+==============================================================================
+ROUTER XÁC THỰC NGƯỜI DÙNG (AUTH ROUTER - FASTAPI)
+==============================================================================
+Các Endpoint:
+- POST /api/auth/register: Đăng ký tài khoản mới
+- POST /api/auth/login: Đăng nhập & trả về JWT Token
+- POST /api/auth/forgot-password: Quên mật khẩu & cấp mã OTP
+- POST /api/auth/reset-password: Xác thực OTP và đặt lại mật khẩu mới
+- GET  /api/auth/me: Lấy thông tin tài khoản hiện tại
+==============================================================================
+"""
+
+from fastapi import APIRouter, HTTPException, Depends, Header
+from pydantic import BaseModel
+from typing import Optional
+from services.auth_service import AuthService, decode_access_token
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+# Pydantic Schemas cho Request Body
+class RegisterRequest(BaseModel):
+    fullName: str
+    email: str
+    password: str
+    role: Optional[str] = "manager"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otpCode: str
+    newPassword: str
+
+
+# Dependency để bảo vệ endpoint cần đăng nhập
+def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Vui lòng đăng nhập để tiếp tục.")
+    token = authorization.split(" ")[1]
+    try:
+        payload = decode_access_token(token)
+        return payload
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@router.post("/register")
+def register(req: RegisterRequest):
+    try:
+        result = AuthService.register_user(req.fullName, req.email, req.password, req.role)
+        return {
+            "success": True,
+            "message": "Đăng ký tài khoản thành công!",
+            "data": result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
+
+
+@router.post("/login")
+def login(req: LoginRequest):
+    try:
+        result = AuthService.login_user(req.email, req.password)
+        return {
+            "success": True,
+            "message": "Đăng nhập thành công!",
+            "data": result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
+
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest):
+    try:
+        result = AuthService.request_forgot_password(req.email)
+        return {
+            "success": True,
+            "message": f"Mã xác thực OTP đã được gửi! (Mã OTP demo đồ án là: {result['demo_otp']})",
+            "data": result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
+
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest):
+    try:
+        AuthService.reset_password(req.email, req.otpCode, req.newPassword)
+        return {
+            "success": True,
+            "message": "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới."
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
+
+
+@router.get("/me")
+def get_me(user: dict = Depends(get_current_user)):
+    user_id = int(user["sub"])
+    profile = AuthService.get_user_by_id(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng.")
+    return {
+        "success": True,
+        "data": profile
+    }

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trợ Lý Kinh Doanh AI Copilot | Gemini</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/ai.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-pie" style="color:#fff;"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE AI</h2>
+          <span>Business Intel</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Phân Tích & Báo Cáo</div>
+        <a href="/static/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Tổng Quan Doanh Thu</span>
+        </a>
+        <a href="/static/customer-rfm.html" class="nav-link">
+          <i class="fa-solid fa-users-viewfinder"></i>
+          <span>Phân Khúc Khách Hàng</span>
+        </a>
+
+        <div class="nav-section-title">Trí Tuệ Nhân Tạo (Gemini)</div>
+        <a href="/static/ai-strategy.html" class="nav-link">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Tối Ưu Chiến Lược AI</span>
+          <span class="badge-ai">PRO</span>
+        </a>
+        <a href="/static/ai-copilot.html" class="nav-link active">
+          <i class="fa-solid fa-comments"></i>
+          <span>AI Business Copilot</span>
+          <span class="badge-ai">CHAT</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">M</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Manager</span>
+            <span class="role" id="sidebar-user-role">MANAGER</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHAT -->
+    <main class="main-wrapper" style="overflow:hidden;">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>AI Business Copilot</h1>
+          <p>Trợ lý ảo phân tích dữ liệu & tư vấn quyết định bán hàng theo thời gian thực</p>
+        </div>
+        <div class="nav-actions">
+          <span class="badge-tag badge-success">
+            <i class="fa-solid fa-circle" style="font-size:8px; margin-right:4px;"></i> Trực Tuyến
+          </span>
+        </div>
+      </header>
+
+      <div class="content-body" style="padding:16px 20px 0;">
+        <div class="glass-card copilot-container">
+          
+          <!-- KHUNG CHỨA TIN NHẮN CHAT -->
+          <div class="chat-messages-area" id="chat-messages">
+            <div class="chat-bubble assistant">
+              <div class="chat-avatar"><i class="fa-solid fa-brain"></i></div>
+              <div class="chat-content">
+                Xin chào! Tôi là <strong>AI Business Copilot</strong> được kết nối trực tiếp với cơ sở dữ liệu bán hàng của bạn. 
+                Bạn có thể hỏi tôi bất cứ điều gì về doanh thu, kênh bán, hàng tồn kho hoặc nhờ tôi gợi ý chiến lược tăng trưởng!
+              </div>
+            </div>
+          </div>
+
+          <!-- GỢI Ý CÂU HỎI NHANH -->
+          <div class="chat-suggestions">
+            <div class="suggestion-pill">Mặt hàng nào có tỷ suất lợi nhuận cao nhất?</div>
+            <div class="suggestion-pill">Tại sao kênh TikTok đang tăng trưởng tốt?</div>
+            <div class="suggestion-pill">Gợi ý cách xả hàng tồn cho nhóm Thiết bị điện tử?</div>
+            <div class="suggestion-pill">Làm thế nào để gia tăng giá trị trung bình đơn (AOV)?</div>
+          </div>
+
+          <!-- THANH NHẬP LIỆU CHAT -->
+          <div class="chat-input-bar">
+            <input type="text" id="chat-input" placeholder="Hỏi AI về số liệu kinh doanh hoặc chiến lược bán hàng..." autocomplete="off">
+            <button class="btn-send-chat" id="btn-send-message" title="Gửi câu hỏi">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/copilot.js"></script>
+</body>
+</html>

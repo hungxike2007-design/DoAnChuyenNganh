@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phân Khúc Khách Hàng (RFM) | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-pie" style="color:#fff;"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE AI</h2>
+          <span>Business Intel</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Phân Tích & Báo Cáo</div>
+        <a href="/static/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Tổng Quan Doanh Thu</span>
+        </a>
+        <a href="/static/customer-rfm.html" class="nav-link active">
+          <i class="fa-solid fa-users-viewfinder"></i>
+          <span>Phân Khúc Khách Hàng</span>
+        </a>
+
+        <div class="nav-section-title">Trí Tuệ Nhân Tạo (Gemini)</div>
+        <a href="/static/ai-strategy.html" class="nav-link">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Tối Ưu Chiến Lược AI</span>
+          <span class="badge-ai">PRO</span>
+        </a>
+        <a href="/static/ai-copilot.html" class="nav-link">
+          <i class="fa-solid fa-comments"></i>
+          <span>AI Business Copilot</span>
+          <span class="badge-ai">CHAT</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">M</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Manager</span>
+            <span class="role" id="sidebar-user-role">MANAGER</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Phân Tích Phân Khúc Khách Hàng (RFM Model)</h1>
+          <p>Phân loại khách hàng theo độ mới (Recency), tần suất (Frequency) và giá trị tiền tệ (Monetary)</p>
+        </div>
+        <div class="nav-actions">
+          <a href="/static/ai-copilot.html" class="btn btn-secondary" style="font-size:13px;">
+            <i class="fa-solid fa-robot"></i> Hỏi AI Về Khách Hàng
+          </a>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- LƯỚI THẺ PHÂN KHÚC -->
+        <div class="kpi-grid" id="rfm-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom:30px;">
+          <!-- Render động từ JS -->
+        </div>
+
+        <!-- BẢNG KHÁCH HÀNG TIÊU BIỂU -->
+        <div class="glass-card data-table-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h3><i class="fa-solid fa-crown" style="color:var(--accent-amber); margin-right:8px;"></i> Danh Sách Khách Hàng Đóng Góp Doanh Thu Cao Nhất</h3>
+            <span class="badge-tag badge-success">Top 10 Spenders</span>
+          </div>
+          
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Hạng</th>
+                  <th>Khách Hàng</th>
+                  <th>Khu Vực</th>
+                  <th>Phân Khúc</th>
+                  <th style="text-align:center;">Số Đơn</th>
+                  <th>Tổng Chi Tiêu</th>
+                </tr>
+              </thead>
+              <tbody id="top-customers-tbody">
+                <!-- Render động từ JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/rfm.js"></script>
+</body>
+</html>

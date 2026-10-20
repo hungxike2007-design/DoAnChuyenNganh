@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Ký Tài Khoản | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card" style="max-width:480px;">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <i class="fa-solid fa-user-plus" style="color:#fff;"></i>
+        </div>
+        <h2>Tạo Tài Khoản Mới</h2>
+        <p>Tham gia quản lý & tối ưu doanh số bán hàng đa kênh</p>
+      </div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="fullName">Họ và tên</label>
+          <div class="input-container">
+            <input type="text" id="fullName" required placeholder="Nguyễn Văn A">
+            <i class="fa-solid fa-user field-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Địa chỉ Email</label>
+          <div class="input-container">
+            <input type="email" id="email" required placeholder="name@company.com">
+            <i class="fa-solid fa-envelope field-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="role">Vai trò công việc</label>
+          <div class="input-container">
+            <select id="role">
+              <option value="manager">Giám Đốc / Quản Lý Kinh Doanh (Manager)</option>
+              <option value="sales">Chuyên Viên Bán Hàng (Sales)</option>
+              <option value="admin">Quản Trị Viên Hệ Thống (Admin)</option>
+            </select>
+            <i class="fa-solid fa-briefcase field-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Mật khẩu (Tối thiểu 6 ký tự)</label>
+          <div class="input-container">
+            <input type="password" id="password" required placeholder="••••••••">
+            <i class="fa-solid fa-lock field-icon"></i>
+            <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('password')" title="Hiện/Ẩn mật khẩu">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Xác nhận mật khẩu</label>
+          <div class="input-container">
+            <input type="password" id="confirmPassword" required placeholder="••••••••">
+            <i class="fa-solid fa-shield-halved field-icon"></i>
+            <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('confirmPassword')" title="Hiện/Ẩn mật khẩu">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-auth-submit">
+          Tạo Tài Khoản <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Đã có tài khoản? 
+        <a href="/static/login.html" class="link-highlight">Đăng nhập tại đây</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+</body>
+</html>

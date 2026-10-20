@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# Environment Variables & Secrets (BẢO VỆ API KEY TUYỆT ĐỐI)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+server/data/database.sqlite
+data/database.sqlite
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
