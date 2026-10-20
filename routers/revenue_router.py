@@ -12,7 +12,9 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
+from pydantic import BaseModel
+from typing import List, Optional
 from services.analytics_service import AnalyticsService
 from routers.auth_router import require_roles, get_current_user
 
@@ -99,4 +101,115 @@ def get_orders(limit: int = Query(50, ge=1, le=200), channel: str = Query("All")
         o["discount_amount"] = float(o.get("discount_amount", 0.0) or 0.0)
 
     return {"success": True, "data": orders}
+
+
+class OrderItemInput(BaseModel):
+    productId: int
+    quantity: int = 1
+
+
+class CreateOrderRequest(BaseModel):
+    channel: str
+    customerId: Optional[int] = 1
+    paymentMethod: Optional[str] = "COD"
+    items: List[OrderItemInput]
+
+
+@router.post("/orders")
+def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)):
+    """Tạo đơn hàng mới (Nhập trực tiếp từ Web hoặc đẩy từ Webhook Shopee, TikTok Shop)."""
+    if not req.items:
+        raise HTTPException(status_code=400, detail="Đơn hàng phải có ít nhất 1 sản phẩm!")
+
+    import random
+    from datetime import datetime
+    from config.db import get_db_connection
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Lấy thông tin các sản phẩm trong đơn để tính tổng tiền và giá vốn
+        product_ids = [item.productId for item in req.items]
+        placeholders = ",".join("?" * len(product_ids))
+        cursor.execute(f"SELECT id, selling_price, cost_price, stock_quantity, name FROM products WHERE id IN ({placeholders})", tuple(product_ids))
+        prod_map = {p["id"]: p for p in cursor.fetchall()}
+
+        total_amount = 0.0
+        items_data = []
+
+        for item in req.items:
+            prod = prod_map.get(item.productId)
+            if not prod:
+                raise HTTPException(status_code=404, detail=f"Không tìm thấy sản phẩm có ID {item.productId}")
+            
+            unit_price = float(prod["selling_price"])
+            cost_price = float(prod["cost_price"])
+            total_price = unit_price * item.quantity
+            total_amount += total_price
+
+            items_data.append({
+                "product_id": item.productId,
+                "quantity": item.quantity,
+                "unit_price": unit_price,
+                "cost_price": cost_price,
+                "total_price": total_price
+            })
+
+        order_code = f"ORD-{datetime.now().strftime('%Y%m%d%H%M')}-{random.randint(100, 999)}"
+        net_amount = total_amount
+
+        # 1. Thêm vào bảng orders và lấy ngay order_id bằng OUTPUT INSERTED.id
+        cursor.execute("""
+            INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date)
+            OUTPUT INSERTED.id
+            VALUES (?, ?, ?, ?, 0, ?, ?, 'completed', GETDATE())
+        """, (order_code, req.customerId, req.channel, total_amount, net_amount, req.paymentMethod))
+
+        row = cursor.fetchone()
+        order_id = row["id"] if row else None
+
+        # 2. Thêm vào bảng order_items và trừ tồn kho
+        for it in items_data:
+            cursor.execute("""
+                INSERT INTO order_items (order_id, product_id, quantity, unit_price, cost_price, total_price)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (order_id, it["product_id"], it["quantity"], it["unit_price"], it["cost_price"], it["total_price"]))
+
+            cursor.execute("""
+                UPDATE products 
+                SET stock_quantity = CASE WHEN stock_quantity >= ? THEN stock_quantity - ? ELSE 0 END
+                WHERE id = ?
+            """, (it["quantity"], it["quantity"], it["product_id"]))
+
+        # 3. Cập nhật chi tiêu khách hàng
+        if req.customerId:
+            cursor.execute("""
+                UPDATE customers 
+                SET total_spent = total_spent + ?,
+                    orders_count = orders_count + 1,
+                    last_order_date = GETDATE()
+                WHERE id = ?
+            """, (net_amount, req.customerId))
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": f"Tạo đơn hàng {order_code} thành công qua kênh '{req.channel}'!",
+            "data": {
+                "order_id": order_id,
+                "order_code": order_code,
+                "total_amount": total_amount,
+                "channel": req.channel
+            }
+        }
+    except HTTPException:
+        conn.close()
+        raise
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo đơn hàng: {str(e)}")
+
 

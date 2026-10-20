@@ -76,7 +76,10 @@
           <h1>Quản Lý Đơn Hàng Đa Kênh</h1>
           <p>Dữ liệu giao dịch trực tiếp từ SQL Server (Shopee, TikTok Shop, Cửa hàng, Website)</p>
         </div>
-        <div class="nav-actions">
+        <div class="nav-actions" style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="openCreateOrderModal()" style="padding:8px 16px; font-size:13px;">
+            <i class="fa-solid fa-plus"></i> Tạo Đơn Hàng Mới
+          </button>
           <a id="btn-orders-ai" href="/static/ai-copilot.html" class="btn btn-ai" style="padding:8px 16px; font-size:13px;">
             <i class="fa-solid fa-comments"></i> AI Trợ Lý Bán Hàng
           </a>
@@ -143,6 +146,66 @@
 
       </div>
     </main>
+  </div>
+
+  <!-- MODAL TẠO ĐƠN HÀNG MỚI (DÀNH CHO USER / SALES / ADMIN) -->
+  <div id="create-order-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+    <div class="glass-card" style="width:100%; max-width:540px; padding:28px; border:1px solid rgba(255,255,255,0.15);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-size:18px; color:#fff; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-cart-plus" style="color:var(--accent-cyan);"></i> Tạo Đơn Hàng Mới
+        </h3>
+        <button type="button" onclick="closeCreateOrderModal()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="create-order-form">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Kênh Bán Hàng</label>
+          <select id="modal-order-channel" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+            <option value="Shopee">Shopee</option>
+            <option value="TikTok Shop">TikTok Shop</option>
+            <option value="Cửa hàng trực tiếp" selected>Cửa hàng trực tiếp (POS)</option>
+            <option value="Website">Website</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Chọn Sản Phẩm</label>
+          <select id="modal-order-product" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;" onchange="updateModalProductPrice()">
+            <!-- Render động từ API sản phẩm -->
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Số Lượng</label>
+            <input type="number" id="modal-order-qty" value="1" min="1" max="50" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;" oninput="updateModalProductPrice()">
+          </div>
+          <div class="form-group">
+            <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:6px;">Phương Thức</label>
+            <select id="modal-order-payment" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+              <option value="Tiền mặt">Tiền mặt</option>
+              <option value="Chuyển khoản">Chuyển khoản</option>
+              <option value="COD">Thu hộ COD</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:12px 16px; border-radius:8px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--text-secondary); font-size:13px;">Tổng Giá Trị Đơn:</span>
+          <strong id="modal-order-total-preview" style="color:var(--accent-cyan); font-size:16px;">0 ₫</strong>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateOrderModal()" style="padding:8px 16px;">Hủy Bỏ</button>
+          <button type="submit" class="btn btn-primary" style="padding:8px 18px;">
+            <i class="fa-solid fa-check"></i> Lưu & Xuất Hóa Đơn
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div id="toast-container"></div>

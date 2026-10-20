@@ -99,3 +99,85 @@ function renderOrdersTable(orders) {
     `;
   }).join('');
 }
+
+let availableProducts = [];
+
+async function openCreateOrderModal() {
+  const modal = document.getElementById('create-order-modal');
+  const prodSelect = document.getElementById('modal-order-product');
+  if (!modal) return;
+
+  try {
+    if (availableProducts.length === 0) {
+      const res = await apiRequest('/api/products/');
+      if (res.success && res.data) {
+        availableProducts = res.data;
+      }
+    }
+
+    if (prodSelect) {
+      prodSelect.innerHTML = availableProducts.map(p => `
+        <option value="${p.id}" data-price="${p.selling_price}">
+          ${p.name} - ${formatVND(p.selling_price)} (Còn: ${p.stock_quantity})
+        </option>
+      `).join('');
+    }
+
+    modal.style.display = 'flex';
+    updateModalProductPrice();
+  } catch (err) {
+    showToast('Lỗi khi tải danh sách sản phẩm: ' + err.message, 'error');
+  }
+}
+
+function closeCreateOrderModal() {
+  const modal = document.getElementById('create-order-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateModalProductPrice() {
+  const prodSelect = document.getElementById('modal-order-product');
+  const qtyInput = document.getElementById('modal-order-qty');
+  const totalPreview = document.getElementById('modal-order-total-preview');
+  if (!prodSelect || !qtyInput || !totalPreview) return;
+
+  const selectedOpt = prodSelect.options[prodSelect.selectedIndex];
+  if (!selectedOpt) return;
+
+  const price = parseFloat(selectedOpt.getAttribute('data-price') || 0);
+  const qty = parseInt(qtyInput.value) || 1;
+  totalPreview.textContent = formatVND(price * qty);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('create-order-form');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const channel = document.getElementById('modal-order-channel').value;
+      const productId = parseInt(document.getElementById('modal-order-product').value);
+      const quantity = parseInt(document.getElementById('modal-order-qty').value) || 1;
+      const paymentMethod = document.getElementById('modal-order-payment').value;
+
+      try {
+        const res = await apiRequest('/api/revenue/orders', {
+          method: 'POST',
+          body: JSON.stringify({
+            channel,
+            customerId: 1,
+            paymentMethod,
+            items: [{ productId, quantity }]
+          })
+        });
+
+        if (res.success) {
+          showToast(res.message, 'success');
+          closeCreateOrderModal();
+          await loadOrders();
+        }
+      } catch (err) {
+        showToast('Lỗi khi tạo đơn hàng: ' + err.message, 'error');
+      }
+    });
+  }
+});
