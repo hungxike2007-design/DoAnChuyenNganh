@@ -7,6 +7,26 @@
   <link rel="stylesheet" href="/static/css/main.css">
   <link rel="stylesheet" href="/static/css/dashboard.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    (function() {
+      const token = localStorage.getItem('dacn_token');
+      const userStr = localStorage.getItem('dacn_user');
+      if (!token || !userStr) {
+        window.location.replace('/static/login.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(userStr);
+        const role = (u.role || 'user').toLowerCase();
+        if (role !== 'admin' && role !== 'manager') {
+          // User thường và Sales bị chặn tuyệt đối khỏi Thống kê doanh thu của Admin/Manager!
+          window.location.replace('/static/orders.html');
+        }
+      } catch (e) {
+        window.location.replace('/static/login.html');
+      }
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>

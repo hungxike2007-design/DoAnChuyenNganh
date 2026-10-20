@@ -37,15 +37,18 @@
         </div>
 
         <div class="form-group">
-          <label for="role">Vai trò công việc</label>
+          <label for="role">Vai trò đăng ký</label>
           <div class="input-container">
             <select id="role">
-              <option value="manager">Giám Đốc / Quản Lý Kinh Doanh (Manager)</option>
-              <option value="sales">Chuyên Viên Bán Hàng (Sales)</option>
-              <option value="admin">Quản Trị Viên Hệ Thống (Admin)</option>
+              <option value="user" selected>👤 Người Dùng / Nhân Viên Bán Hàng (User / Sales)</option>
+              <option value="manager">💼 Quản Lý Kinh Doanh (Manager)</option>
+              <option value="admin">👑 Quản Trị Viên (Admin)</option>
             </select>
             <i class="fa-solid fa-briefcase field-icon"></i>
           </div>
+          <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">
+            * Tài khoản User chỉ thao tác Đơn Hàng & Kho Hàng. Quyền Thống Kê & Doanh Thu chỉ dành cho Admin / Manager.
+          </small>
         </div>
 
         <div class="form-group">

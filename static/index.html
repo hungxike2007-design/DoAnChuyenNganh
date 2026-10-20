@@ -9,10 +9,20 @@
 </head>
 <body>
   <script>
-    // Kiểm tra xem đã đăng nhập chưa để chuyển hướng chính xác
+    // Kiểm tra xem đã đăng nhập chưa và điều hướng đúng phân quyền
     const token = localStorage.getItem('dacn_token');
-    if (token) {
-      window.location.replace('/static/dashboard.html');
+    const userStr = localStorage.getItem('dacn_user');
+    let user = null;
+    try { user = JSON.parse(userStr); } catch (e) {}
+
+    if (token && user) {
+      const role = (user.role || 'user').toLowerCase();
+      if (role === 'admin' || role === 'manager') {
+        window.location.replace('/static/dashboard.html');
+      } else {
+        // Tài khoản User / Sales chỉ truy cập khu vực Bán hàng & Đơn hàng
+        window.location.replace('/static/orders.html');
+      }
     } else {
       window.location.replace('/static/login.html');
     }

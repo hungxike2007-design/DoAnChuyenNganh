@@ -28,8 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
           setUser(res.data.user);
           showToast('Đăng nhập thành công! Đang chuyển hướng...', 'success');
           setTimeout(() => {
-            window.location.href = '/static/dashboard.html';
-          }, 800);
+            const role = (res.data.user && res.data.user.role ? res.data.user.role : 'user').toLowerCase();
+            if (role === 'admin' || role === 'manager') {
+              window.location.href = '/static/dashboard.html';
+            } else {
+              window.location.href = '/static/orders.html';
+            }
+          }, 700);
         }
       } catch (err) {
         showToast(err.message, 'error');
@@ -69,10 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.success && res.data) {
           setToken(res.data.token);
           setUser(res.data.user);
-          showToast('Đăng ký tài khoản thành công!', 'success');
+          showToast('Đăng ký tài khoản thành công! Đang chuyển hướng...', 'success');
           setTimeout(() => {
-            window.location.href = '/static/dashboard.html';
-          }, 800);
+            const role = (res.data.user && res.data.user.role ? res.data.user.role : 'user').toLowerCase();
+            if (role === 'admin' || role === 'manager') {
+              window.location.href = '/static/dashboard.html';
+            } else {
+              window.location.href = '/static/orders.html';
+            }
+          }, 700);
         }
       } catch (err) {
         showToast(err.message, 'error');
@@ -168,13 +178,15 @@ function fillDemoAccount(role) {
 
   if (role === 'admin') {
     emailInput.value = 'admin@dacn.vn';
+    showToast('Tài khoản ADMIN: Toàn quyền Thống kê Doanh thu & Quản trị người dùng', 'info');
   } else if (role === 'manager') {
     emailInput.value = 'manager@dacn.vn';
+    showToast('Tài khoản MANAGER: Thống kê Doanh thu, RFM & AI Strategy (Không quản trị user)', 'info');
   } else {
-    emailInput.value = 'sales@dacn.vn';
+    emailInput.value = 'user@dacn.vn';
+    showToast('Tài khoản USER / SALES: Chỉ có chức năng Quản lý Đơn Hàng & Kho Hàng', 'info');
   }
   passwordInput.value = '123456';
-  showToast(`Đã tự động điền tài khoản: ${emailInput.value}`, 'info');
 }
 
 // Hàm toggle hiển thị mật khẩu

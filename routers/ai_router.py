@@ -10,10 +10,11 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 from services.gemini_service import GeminiService
+from routers.auth_router import require_roles
 
 router = APIRouter(prefix="/api/ai", tags=["AI Business Consultant"])
 
@@ -24,18 +25,18 @@ class CopilotChatRequest(BaseModel):
 
 
 @router.post("/executive-summary")
-def get_executive_summary():
+def get_executive_summary(user: dict = Depends(require_roles("admin", "manager"))):
     try:
-        result = GeminiService.generate_executive_summary()
+        result = GeminiService.generate_executive_summary(user_id=int(user["sub"]))
         return {"success": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/strategy")
-def get_strategy():
+def get_strategy(user: dict = Depends(require_roles("admin", "manager"))):
     try:
-        result = GeminiService.generate_pricing_and_bundle_strategy()
+        result = GeminiService.generate_pricing_and_bundle_strategy(user_id=int(user["sub"]))
         return {"success": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

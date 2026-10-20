@@ -24,7 +24,7 @@ class RegisterRequest(BaseModel):
     fullName: str
     email: str
     password: str
-    role: Optional[str] = "manager"
+    role: Optional[str] = "user"
 
 
 class LoginRequest(BaseModel):
@@ -52,6 +52,19 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
         return payload
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
+
+
+def require_roles(*allowed_roles):
+    """Kiểm tra quyền hạn người dùng theo danh sách vai trò cho phép."""
+    def role_checker(user: dict = Depends(get_current_user)):
+        user_role = user.get("role", "sales")
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Quyền truy cập bị từ chối! Chức năng này yêu cầu vai trò: [{', '.join(allowed_roles)}]. Vai trò của bạn: '{user_role}'."
+            )
+        return user
+    return role_checker
 
 
 @router.post("/register")
@@ -123,3 +136,44 @@ def get_me(user: dict = Depends(get_current_user)):
         "success": True,
         "data": profile
     }
+
+
+# ==============================================================================
+# CÁC ENDPOINT QUẢN TRỊ TÀI KHOẢN (CHỈ DÀNH CHO ADMIN)
+# ==============================================================================
+
+class UpdateRoleRequest(BaseModel):
+    role: str
+
+
+@router.get("/users")
+def get_all_users(admin: dict = Depends(require_roles("admin"))):
+    """Admin lấy danh sách toàn bộ người dùng và vai trò."""
+    from config.db import get_db_connection
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, full_name, email, role, avatar_url, 
+               CONVERT(VARCHAR(19), created_at, 120) as created_at
+        FROM users
+        ORDER BY id ASC
+    """)
+    users = cursor.fetchall()
+    conn.close()
+    return {"success": True, "data": users}
+
+
+@router.put("/users/{user_id}/role")
+def update_user_role(user_id: int, req: UpdateRoleRequest, admin: dict = Depends(require_roles("admin"))):
+    """Admin thay đổi phân quyền của một tài khoản."""
+    if req.role not in ["admin", "manager", "sales", "user"]:
+        raise HTTPException(status_code=400, detail="Vai trò không hợp lệ! Chỉ cho phép: admin, manager, sales, user.")
+
+    from config.db import get_db_connection
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET role = ? WHERE id = ?", (req.role, user_id))
+    conn.commit()
+    conn.close()
+    return {"success": True, "message": f"Đã cập nhật vai trò của tài khoản thành '{req.role}'!"}
+

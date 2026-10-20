@@ -12,44 +12,56 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from services.analytics_service import AnalyticsService
+from routers.auth_router import require_roles, get_current_user
 
 router = APIRouter(prefix="/api/revenue", tags=["Revenue & Analytics"])
 
 
 @router.get("/kpis")
-def get_kpis(days: int = Query(180, ge=1, le=720)):
+def get_kpis(days: int = Query(180, ge=1, le=720), user: dict = Depends(require_roles("admin", "manager"))):
+    """Chỉ Admin và Manager mới có quyền xem toàn bộ KPI doanh thu & lợi nhuận gộp."""
     data = AnalyticsService.get_kpis(days)
     return {"success": True, "data": data}
 
 
 @router.get("/timeline")
-def get_timeline(days: int = Query(30, ge=1, le=180)):
+def get_timeline(days: int = Query(30, ge=1, le=180), user: dict = Depends(require_roles("admin", "manager"))):
+    """Chỉ Admin và Manager mới có quyền xem chuỗi thời gian doanh thu toàn công ty."""
     data = AnalyticsService.get_revenue_timeline(days)
     return {"success": True, "data": data}
 
 
 @router.get("/channels")
-def get_channels(days: int = Query(180, ge=1, le=720)):
+def get_channels(days: int = Query(180, ge=1, le=720), user: dict = Depends(require_roles("admin", "manager"))):
     data = AnalyticsService.get_channel_breakdown(days)
     return {"success": True, "data": data}
 
 
 @router.get("/top-products")
-def get_top_products(limit: int = Query(8, ge=1, le=50)):
+def get_top_products(limit: int = Query(8, ge=1, le=50), user: dict = Depends(get_current_user)):
     data = AnalyticsService.get_top_products(limit)
+    # Nếu là Sales hoặc User thông thường, ẩn hoàn toàn thông tin lợi nhuận (cost_price & profit)
+    if user.get("role") in ["sales", "user"]:
+        for p in data:
+            p.pop("cost_price", None)
+            p.pop("total_profit", None)
     return {"success": True, "data": data}
 
 
 @router.get("/inventory-alerts")
-def get_inventory_alerts(threshold: int = Query(40, ge=1, le=500)):
+def get_inventory_alerts(threshold: int = Query(40, ge=1, le=500), user: dict = Depends(get_current_user)):
     data = AnalyticsService.get_inventory_alerts(threshold)
+    if user.get("role") in ["sales", "user"]:
+        for p in data:
+            p.pop("cost_price", None)
     return {"success": True, "data": data}
 
 
 @router.get("/rfm")
-def get_customer_rfm():
+def get_customer_rfm(user: dict = Depends(require_roles("admin", "manager"))):
+    """Chỉ Admin và Manager mới có quyền phân tích phân khúc tài chính khách hàng."""
     data = AnalyticsService.get_customer_segments()
     return {"success": True, "data": data}
 

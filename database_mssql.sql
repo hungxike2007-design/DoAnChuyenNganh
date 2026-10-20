@@ -32,7 +32,7 @@ CREATE TABLE users (
     full_name NVARCHAR(150) NOT NULL,
     email NVARCHAR(150) UNIQUE NOT NULL,
     password_hash NVARCHAR(255) NOT NULL,
-    role NVARCHAR(20) DEFAULT 'manager' CHECK(role IN ('admin', 'manager', 'sales')),
+    role NVARCHAR(20) DEFAULT 'user' CHECK(role IN ('admin', 'manager', 'sales', 'user')),
     avatar_url NVARCHAR(500) DEFAULT '',
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()

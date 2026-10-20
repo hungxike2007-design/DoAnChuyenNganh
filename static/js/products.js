@@ -9,6 +9,21 @@ let allProducts = [];
 document.addEventListener('DOMContentLoaded', async () => {
   if (!requireAuth()) return;
 
+  const user = getUser();
+  const role = (user && user.role ? user.role : 'user').toLowerCase();
+  const isStaff = (role === 'sales' || role === 'user');
+
+  // Nếu là Staff (User / Sales), ẩn hoàn toàn các quyền thêm sản phẩm và cột chi phí vốn
+  if (isStaff) {
+    const addBtn = document.getElementById('btn-add-product');
+    if (addBtn) addBtn.style.display = 'none';
+
+    const invCard = document.getElementById('kpi-inventory-value-card');
+    if (invCard) invCard.style.display = 'none';
+
+    document.querySelectorAll('.cost-col').forEach(el => el.style.display = 'none');
+  }
+
   await loadCategories();
   await loadProducts();
 
@@ -102,15 +117,46 @@ function renderProductsTable(products) {
   const tbody = document.getElementById('products-tbody');
   if (!tbody) return;
 
+  const user = getUser();
+  const role = (user && user.role ? user.role : 'user').toLowerCase();
+  const isStaff = (role === 'sales' || role === 'user');
+
   if (products.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">Không tìm thấy sản phẩm nào phù hợp.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${isStaff ? 5 : 7}" style="text-align:center; padding:30px; color:var(--text-muted);">Không tìm thấy sản phẩm nào phù hợp.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = products.map(p => {
-    const margin = p.selling_price > 0 ? (((p.selling_price - p.cost_price) / p.selling_price) * 100).toFixed(1) : 0;
     const isLowStock = p.stock_quantity <= 40;
 
+    if (isStaff) {
+      // Giao diện Nhân Viên / User: CHỈ THẤY GIÁ BÁN NIÊM YẾT VÀ TỒN KHO (Giá vốn & Biên lãi được bảo mật)
+      return `
+        <tr>
+          <td style="font-weight:700; color:var(--accent-cyan); font-family:monospace;">
+            ${p.sku}
+          </td>
+          <td>
+            <div style="font-weight:600; color:#fff;">${p.name}</div>
+            <small style="color:var(--text-muted);">${p.category_name || 'Khác'}</small>
+          </td>
+          <td style="font-weight:600; color:#fff;">${formatVND(p.selling_price)}</td>
+          <td>
+            <span class="badge-tag ${isLowStock ? 'badge-warning' : 'badge-success'}">
+              ${p.stock_quantity} tồn kho
+            </span>
+          </td>
+          <td>
+            <a href="/static/ai-copilot.html" class="link-highlight" style="font-size:12px;">
+              <i class="fa-solid fa-comments" style="color:var(--accent-cyan); margin-right:4px;"></i> Tư vấn bán hàng
+            </a>
+          </td>
+        </tr>
+      `;
+    }
+
+    // Giao diện Admin / Manager: Thấy toàn bộ Giá vốn (COGS) & Biên lợi nhuận
+    const margin = p.selling_price > 0 ? (((p.selling_price - p.cost_price) / p.selling_price) * 100).toFixed(1) : 0;
     return `
       <tr>
         <td style="font-weight:700; color:var(--accent-cyan); font-family:monospace;">
@@ -120,9 +166,9 @@ function renderProductsTable(products) {
           <div style="font-weight:600; color:#fff;">${p.name}</div>
           <small style="color:var(--text-muted);">${p.category_name || 'Khác'}</small>
         </td>
-        <td>${formatVND(p.cost_price)}</td>
+        <td class="cost-col">${formatVND(p.cost_price)}</td>
         <td style="font-weight:600; color:#fff;">${formatVND(p.selling_price)}</td>
-        <td>
+        <td class="cost-col">
           <span class="badge-tag ${margin > 50 ? 'badge-success' : 'badge-tag'}" style="font-weight:700;">
             ${margin}%
           </span>

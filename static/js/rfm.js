@@ -5,7 +5,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!requireAuth()) return;
+  if (!checkPageRole(['admin', 'manager'])) return;
 
   try {
     const res = await apiRequest('/api/revenue/rfm');

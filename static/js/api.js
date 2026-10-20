@@ -113,17 +113,98 @@ function requireAuth() {
   return true;
 }
 
-// Cập nhật thông tin tài khoản trên Sidebar
+// Kiểm tra quyền truy cập theo vai trò (Role-Based Page Protection)
+function checkPageRole(allowedRoles = []) {
+  if (!requireAuth()) return false;
+  const user = getUser();
+  if (!user) return false;
+
+  const userRole = (user.role || 'user').toLowerCase();
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    console.warn(`[RBAC] Access denied for role: ${userRole}. Allowed: [${allowedRoles.join(', ')}]`);
+    if (userRole === 'sales' || userRole === 'user') {
+      showToast('Tài khoản của bạn là USER/SALES. Bạn không có quyền truy cập Thống kê của Admin!', 'warning');
+      window.location.replace('/static/orders.html');
+    } else {
+      showToast('Trang này yêu cầu quyền Quản Trị Viên (Admin)!', 'warning');
+      window.location.replace('/static/dashboard.html');
+    }
+    return false;
+  }
+  return true;
+}
+
+// Cập nhật thông tin tài khoản và điều chỉnh Sidebar linh hoạt theo Role
 function renderSidebarUser() {
   const user = getUser();
   const nameEl = document.getElementById('sidebar-user-name');
   const roleEl = document.getElementById('sidebar-user-role');
   const avatarEl = document.getElementById('sidebar-user-avatar');
+  const navContainer = document.querySelector('.sidebar-nav');
 
-  if (user) {
-    if (nameEl) nameEl.textContent = user.fullName || user.name || 'Người dùng';
-    if (roleEl) roleEl.textContent = (user.role || 'manager').toUpperCase();
-    if (avatarEl) avatarEl.textContent = (user.fullName || user.name || 'U').charAt(0).toUpperCase();
+  if (!user) return;
+
+  const role = (user.role || 'user').toLowerCase();
+  const isStaff = (role === 'sales' || role === 'user');
+
+  if (nameEl) nameEl.textContent = user.fullName || user.name || (isStaff ? 'Nhân Viên Bán Hàng' : 'Quản Lý');
+  if (roleEl) {
+    if (role === 'admin') roleEl.textContent = 'ADMIN (QUẢN TRỊ)';
+    else if (role === 'manager') roleEl.textContent = 'MANAGER (QUẢN LÝ)';
+    else roleEl.textContent = 'USER (BÁN HÀNG)';
+  }
+  if (avatarEl) avatarEl.textContent = (user.fullName || user.name || (isStaff ? 'S' : 'A')).charAt(0).toUpperCase();
+
+  // Đổi màu avatar theo Role
+  if (avatarEl) {
+    if (role === 'admin') avatarEl.style.background = 'linear-gradient(135deg, #8b5cf6, #ec4899)';
+    else if (role === 'manager') avatarEl.style.background = 'linear-gradient(135deg, #06b6d4, #3b82f6)';
+    else avatarEl.style.background = 'linear-gradient(135deg, #10b981, #06b6d4)';
+  }
+
+  // PHÂN QUYỀN HIỂN THỊ MENU SIDEBAR THEO ROLE
+  if (navContainer) {
+    // 1. Nếu là SALES hoặc USER: ẨN hoàn toàn Thống kê doanh thu, Phân khúc RFM, Chiến lược AI và Quản trị người dùng
+    if (isStaff) {
+      const sensitiveLinks = [
+        '/static/dashboard.html',
+        '/static/customer-rfm.html',
+        '/static/ai-strategy.html',
+        '/static/users.html'
+      ];
+      navContainer.querySelectorAll('.nav-link').forEach(link => {
+        const href = link.getAttribute('href');
+        if (sensitiveLinks.some(s => href && href.includes(s))) {
+          link.style.display = 'none';
+        }
+      });
+
+      const titles = navContainer.querySelectorAll('.nav-section-title');
+      if (titles.length > 0) titles[0].textContent = 'Nghiệp Vụ Bán Hàng';
+      if (titles.length > 1) titles[1].textContent = 'Trợ Lý Tư Vấn Bán Hàng';
+    }
+
+    // 2. Nếu là ADMIN: Bổ sung thêm menu "Quản Trị Người Dùng & Phân Quyền"
+    if (role === 'admin') {
+      if (!navContainer.querySelector('a[href*="users.html"]')) {
+        const adminSection = document.createElement('div');
+        adminSection.className = 'nav-section-title';
+        adminSection.textContent = 'Quản Trị Hệ Thống';
+        adminSection.style.color = 'var(--accent-secondary)';
+
+        const usersLink = document.createElement('a');
+        usersLink.href = '/static/users.html';
+        usersLink.className = `nav-link ${window.location.pathname.includes('users.html') ? 'active' : ''}`;
+        usersLink.innerHTML = `
+          <i class="fa-solid fa-users-gear" style="color:var(--accent-secondary);"></i>
+          <span>Quản Trị Người Dùng</span>
+          <span class="badge-tag badge-warning" style="margin-left:auto; font-size:10px;">ADMIN</span>
+        `;
+
+        navContainer.appendChild(adminSection);
+        navContainer.appendChild(usersLink);
+      }
+    }
   }
 }
 

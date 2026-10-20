@@ -77,7 +77,7 @@
           <p>Dữ liệu đồng bộ trực tiếp từ SQL Server (Server: TOM • Database: RevenueSystemDB)</p>
         </div>
         <div class="nav-actions">
-          <button class="btn btn-primary" onclick="openAddModal()" style="padding:8px 16px; font-size:13px;">
+          <button id="btn-add-product" class="btn btn-primary" onclick="openAddModal()" style="padding:8px 16px; font-size:13px;">
             <i class="fa-solid fa-plus"></i> Thêm Sản Phẩm Mới
           </button>
         </div>
@@ -99,7 +99,7 @@
             <div class="kpi-trend positive"><i class="fa-solid fa-box"></i> Hàng hóa sẵn sàng xuất</div>
           </div>
 
-          <div class="glass-card kpi-card" style="--card-border-color: #10b981;">
+          <div id="kpi-inventory-value-card" class="glass-card kpi-card" style="--card-border-color: #10b981;">
             <span class="kpi-title">Tổng Giá Trị Vốn Kho (COGS)</span>
             <div class="kpi-value" id="summary-inventory-value" style="margin-top:8px;">0 ₫</div>
             <div class="kpi-trend positive"><i class="fa-solid fa-vault"></i> Giá trị tài sản lưu kho</div>
@@ -130,12 +130,12 @@
           <div style="overflow-x:auto;">
             <table class="custom-table">
               <thead>
-                <tr>
+                <tr id="products-table-header">
                   <th>Mã SKU</th>
                   <th>Tên Sản Phẩm / Danh Mục</th>
-                  <th>Giá Vốn (COGS)</th>
+                  <th class="cost-col">Giá Vốn (COGS)</th>
                   <th>Giá Bán Niêm Yết</th>
-                  <th>Biên Lợi Nhuận</th>
+                  <th class="cost-col">Biên Lợi Nhuận</th>
                   <th>Số Lượng Tồn</th>
                   <th>Hành Động</th>
                 </tr>

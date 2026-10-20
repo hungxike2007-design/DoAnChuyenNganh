@@ -9,7 +9,7 @@ let channelChart = null;
 let currentDays = 180;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!requireAuth()) return;
+  if (!checkPageRole(['admin', 'manager'])) return;
 
   await loadDashboardData(currentDays);
 

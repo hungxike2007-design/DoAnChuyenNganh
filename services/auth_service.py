@@ -58,7 +58,7 @@ def decode_access_token(token: str) -> dict:
 
 class AuthService:
     @staticmethod
-    def register_user(full_name: str, email: str, password: str, role: str = "manager") -> dict:
+    def register_user(full_name: str, email: str, password: str, role: str = "user") -> dict:
         email_clean = email.strip().lower()
         if len(password) < 6:
             raise ValueError("Mật khẩu phải có ít nhất 6 ký tự.")
@@ -71,7 +71,9 @@ class AuthService:
             conn.close()
             raise ValueError("Email này đã được sử dụng. Vui lòng chọn email khác.")
 
-        assigned_role = role if role in ["admin", "manager", "sales"] else "manager"
+        # Đăng ký tài khoản mặc định là 'user' (nhân viên bán hàng / người dùng thông thường)
+        # Chỉ Admin mới có quyền gán quyền manager hoặc admin trong hệ thống
+        assigned_role = role if role in ["admin", "manager", "sales", "user"] else "user"
         pw_hash = hash_password(password)
 
         cursor.execute(
