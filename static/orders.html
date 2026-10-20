@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Đơn Hàng Đa Kênh | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR ĐIỀU HƯỚNG -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-pie" style="color:#fff;"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE AI</h2>
+          <span>Business Intel</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Phân Tích & Báo Cáo</div>
+        <a href="/static/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Tổng Quan Doanh Thu</span>
+        </a>
+        <a href="/static/orders.html" class="nav-link active">
+          <i class="fa-solid fa-cart-flatbed"></i>
+          <span>Quản Lý Đơn Hàng</span>
+        </a>
+        <a href="/static/products.html" class="nav-link">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Sản Phẩm & Kho Hàng</span>
+        </a>
+        <a href="/static/customer-rfm.html" class="nav-link">
+          <i class="fa-solid fa-users-viewfinder"></i>
+          <span>Phân Khúc Khách Hàng</span>
+        </a>
+
+        <div class="nav-section-title">Trí Tuệ Nhân Tạo (Gemini)</div>
+        <a href="/static/ai-strategy.html" class="nav-link">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Tối Ưu Chiến Lược AI</span>
+          <span class="badge-ai">PRO</span>
+        </a>
+        <a href="/static/ai-copilot.html" class="nav-link">
+          <i class="fa-solid fa-comments"></i>
+          <span>AI Business Copilot</span>
+          <span class="badge-ai">CHAT</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">M</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Manager</span>
+            <span class="role" id="sidebar-user-role">MANAGER</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Quản Lý Đơn Hàng Đa Kênh</h1>
+          <p>Dữ liệu giao dịch trực tiếp từ SQL Server (Shopee, TikTok Shop, Cửa hàng, Website)</p>
+        </div>
+        <div class="nav-actions">
+          <a href="/static/ai-strategy.html" class="btn btn-ai" style="padding:8px 16px; font-size:13px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Tối Ưu Giỏ Hàng
+          </a>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- BỘ LỌC ĐƠN HÀNG -->
+        <div class="glass-card" style="padding:18px 24px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label for="filter-channel" style="font-size:13px; font-weight:600; color:var(--text-secondary);">Kênh bán:</label>
+              <select id="filter-channel" style="background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:8px 14px; border-radius:var(--radius-sm); font-size:13px;">
+                <option value="All">Tất cả kênh bán</option>
+                <option value="Shopee">Shopee</option>
+                <option value="TikTok Shop">TikTok Shop</option>
+                <option value="Cửa hàng trực tiếp">Cửa hàng trực tiếp</option>
+                <option value="Website">Website</option>
+              </select>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label for="filter-status" style="font-size:13px; font-weight:600; color:var(--text-secondary);">Trạng thái:</label>
+              <select id="filter-status" style="background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:8px 14px; border-radius:var(--radius-sm); font-size:13px;">
+                <option value="All">Tất cả trạng thái</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="shipping">Đang giao</option>
+                <option value="cancelled">Đã hủy</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div>
+            <span class="badge-tag badge-success" id="orders-count-badge" style="font-size:13px; padding:6px 14px;">
+              Đang tải...
+            </span>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH ĐƠN HÀNG -->
+        <div class="glass-card data-table-card">
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Mã Đơn Hàng</th>
+                  <th>Khách Hàng</th>
+                  <th>Kênh Bán Hàng</th>
+                  <th>Thanh Toán</th>
+                  <th>Thời Gian Đặt</th>
+                  <th>Trạng Thái</th>
+                  <th style="text-align:right;">Số Tiền Thu</th>
+                </tr>
+              </thead>
+              <tbody id="orders-tbody">
+                <!-- Render động từ JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/orders.js"></script>
+</body>
+</html>

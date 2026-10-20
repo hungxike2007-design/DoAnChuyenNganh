@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sản Phẩm & Quản Lý Kho Hàng | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR ĐIỀU HƯỚNG -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-pie" style="color:#fff;"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE AI</h2>
+          <span>Business Intel</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Phân Tích & Báo Cáo</div>
+        <a href="/static/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Tổng Quan Doanh Thu</span>
+        </a>
+        <a href="/static/orders.html" class="nav-link">
+          <i class="fa-solid fa-cart-flatbed"></i>
+          <span>Quản Lý Đơn Hàng</span>
+        </a>
+        <a href="/static/products.html" class="nav-link active">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Sản Phẩm & Kho Hàng</span>
+        </a>
+        <a href="/static/customer-rfm.html" class="nav-link">
+          <i class="fa-solid fa-users-viewfinder"></i>
+          <span>Phân Khúc Khách Hàng</span>
+        </a>
+
+        <div class="nav-section-title">Trí Tuệ Nhân Tạo (Gemini)</div>
+        <a href="/static/ai-strategy.html" class="nav-link">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Tối Ưu Chiến Lược AI</span>
+          <span class="badge-ai">PRO</span>
+        </a>
+        <a href="/static/ai-copilot.html" class="nav-link">
+          <i class="fa-solid fa-comments"></i>
+          <span>AI Business Copilot</span>
+          <span class="badge-ai">CHAT</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">M</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Manager</span>
+            <span class="role" id="sidebar-user-role">MANAGER</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Quản Lý Sản Phẩm, Giá Vốn & Tồn Kho</h1>
+          <p>Dữ liệu đồng bộ trực tiếp từ SQL Server (Server: TOM • Database: RevenueSystemDB)</p>
+        </div>
+        <div class="nav-actions">
+          <button class="btn btn-primary" onclick="openAddModal()" style="padding:8px 16px; font-size:13px;">
+            <i class="fa-solid fa-plus"></i> Thêm Sản Phẩm Mới
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- 3 THẺ CHỈ SỐ KHO HÀNG -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom:24px;">
+          <div class="glass-card kpi-card" style="--card-border-color: #6366f1;">
+            <span class="kpi-title">Tổng Số Danh Mục Hàng</span>
+            <div class="kpi-value" id="summary-total-products" style="margin-top:8px;">0 Mặt Hàng</div>
+            <div class="kpi-trend neutral"><i class="fa-solid fa-tags"></i> Phân loại đa ngành</div>
+          </div>
+
+          <div class="glass-card kpi-card" style="--card-border-color: #06b6d4;">
+            <span class="kpi-title">Tổng Lượng Tồn Kho</span>
+            <div class="kpi-value" id="summary-total-stock" style="margin-top:8px;">0 Cái</div>
+            <div class="kpi-trend positive"><i class="fa-solid fa-box"></i> Hàng hóa sẵn sàng xuất</div>
+          </div>
+
+          <div class="glass-card kpi-card" style="--card-border-color: #10b981;">
+            <span class="kpi-title">Tổng Giá Trị Vốn Kho (COGS)</span>
+            <div class="kpi-value" id="summary-inventory-value" style="margin-top:8px;">0 ₫</div>
+            <div class="kpi-trend positive"><i class="fa-solid fa-vault"></i> Giá trị tài sản lưu kho</div>
+          </div>
+        </div>
+
+        <!-- BỘ LỌC & TÌM KIẾM -->
+        <div class="glass-card" style="padding:16px 22px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; flex:1;">
+            
+            <div style="position:relative; min-width:280px; flex:1;">
+              <input type="text" id="search-product" placeholder="Tìm theo tên sản phẩm hoặc mã SKU..." 
+                     style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px 14px 10px 38px; border-radius:var(--radius-sm); font-size:13px;">
+              <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:12px; color:var(--text-muted);"></i>
+            </div>
+
+            <div style="min-width:200px;">
+              <select id="filter-category" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px;">
+                <option value="All">Tất cả danh mục</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH SẢN PHẨM -->
+        <div class="glass-card data-table-card">
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Mã SKU</th>
+                  <th>Tên Sản Phẩm / Danh Mục</th>
+                  <th>Giá Vốn (COGS)</th>
+                  <th>Giá Bán Niêm Yết</th>
+                  <th>Biên Lợi Nhuận</th>
+                  <th>Số Lượng Tồn</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <!-- Render động từ JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL THÊM SẢN PHẨM MỚI -->
+  <div id="add-product-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div class="glass-card" style="width:100%; max-width:500px; padding:30px; background:#121826; border:1px solid rgba(255,255,255,0.15);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-size:18px; color:#fff;"><i class="fa-solid fa-plus-circle" style="color:var(--accent-primary); margin-right:8px;"></i> Thêm Sản Phẩm Mới</h3>
+        <button onclick="closeAddModal()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="add-product-form">
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Mã SKU (Duy nhất):</label>
+          <input type="text" id="modal-sku" required placeholder="SKU-099" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Tên sản phẩm:</label>
+          <input type="text" id="modal-name" required placeholder="Ví dụ: Áo sơ mi nam Oxford..." style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Danh mục hàng:</label>
+          <select id="modal-category" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;"></select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Giá vốn COGS (VNĐ):</label>
+            <input type="number" id="modal-cost" required placeholder="150000" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Giá bán niêm yết (VNĐ):</label>
+            <input type="number" id="modal-price" required placeholder="320000" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <label style="display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Số lượng nhập kho ban đầu:</label>
+          <input type="number" id="modal-stock" required placeholder="50" style="width:100%; background:#1e293b; color:#fff; border:1px solid var(--border-subtle); padding:10px; border-radius:6px; font-size:13px;">
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Hủy Bỏ</button>
+          <button type="submit" class="btn btn-primary">Lưu Vào SQL Server</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/products.js"></script>
+</body>
+</html>
