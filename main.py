@@ -39,14 +39,14 @@ from routers.product_router import router as product_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Khởi động: Kiểm tra kết nối tới Microsoft SQL Server (SSMS)
-    print("🚀 [System] Đang khởi động hệ thống...")
+    print("🚀 [System] Đang khởi động hệ thống...", flush=True)
     is_connected = test_connection()
     if is_connected:
-        print("✨ [System] Hệ thống đã sẵn sàng phục vụ tại http://127.0.0.1:8000")
+        print("✨ [System] Hệ thống đã sẵn sàng phục vụ tại http://127.0.0.1:8000", flush=True)
     else:
-        print("⚠️ [System] Cảnh báo: Chưa kết nối được SQL Server!")
+        print("⚠️ [System] Cảnh báo: Chưa kết nối được SQL Server!", flush=True)
     yield
-    print("🛑 [System] Đang dừng hệ thống...")
+    print("🛑 [System] Đang dừng hệ thống...", flush=True)
 
 
 app = FastAPI(

@@ -97,16 +97,32 @@ def get_db_connection():
             drivers = pyodbc.drivers()
             driver = "ODBC Driver 17 for SQL Server" if "ODBC Driver 17 for SQL Server" in drivers else "SQL Server"
             
-            if DB_TRUSTED.lower() in ("yes", "true", "1"):
-                conn_str = f"Driver={{{driver}}};Server={DB_SERVER};Database={DB_DATABASE};Trusted_Connection=yes;"
-            else:
-                conn_str = f"Driver={{{driver}}};Server={DB_SERVER};Database={DB_DATABASE};UID={DB_USER};PWD={DB_PASSWORD};"
+            # Danh sách server ứng viên (ưu tiên cấu hình trong .env, dự phòng localhost và .)
+            candidate_servers = [DB_SERVER]
+            for fb in ["localhost", ".", "127.0.0.1"]:
+                if fb not in candidate_servers:
+                    candidate_servers.append(fb)
 
-            raw_conn = pyodbc.connect(conn_str, autocommit=False)
-            return DBConnectionWrapper(raw_conn)
+            last_error = None
+            for srv in candidate_servers:
+                try:
+                    if DB_TRUSTED.lower() in ("yes", "true", "1"):
+                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;"
+                    else:
+                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=yes;"
+
+                    raw_conn = pyodbc.connect(conn_str, autocommit=False, timeout=3)
+                    return DBConnectionWrapper(raw_conn)
+                except Exception as ex:
+                    last_error = ex
+                    continue
+
+            print(f"❌ [Database] Không thể kết nối tới SQL Server: {last_error}", file=sys.stderr)
+            raise ConnectionError(f"Lỗi kết nối Microsoft SQL Server ({DB_DATABASE}): {str(last_error)}")
         except Exception as e:
-            print(f"❌ [Database] Không thể kết nối tới SQL Server: {e}", file=sys.stderr)
-            raise ConnectionError(f"Lỗi kết nối Microsoft SQL Server ({DB_DATABASE}): {str(e)}")
+            if not isinstance(e, ConnectionError):
+                print(f"❌ [Database] Lỗi kết nối CSDL: {e}", file=sys.stderr)
+            raise
 
     # Dự phòng SQLite nếu DB_TYPE = sqlite
     import sqlite3
@@ -124,10 +140,10 @@ def test_connection():
         cursor.execute("SELECT @@VERSION")
         row = cursor.cursor.fetchone()
         conn.close()
-        print(f"✅ [Database] Kết nối thành công tới Microsoft SQL Server (Database: {DB_DATABASE})!")
+        print(f"✅ [Database] Kết nối thành công tới Microsoft SQL Server (Database: {DB_DATABASE})!", flush=True)
         return True
     except Exception as e:
-        print(f"⚠️ [Database] Kiểm tra kết nối SQL Server thất bại: {e}")
+        print(f"⚠️ [Database] Kiểm tra kết nối SQL Server thất bại: {e}", flush=True)
         return False
 
 
