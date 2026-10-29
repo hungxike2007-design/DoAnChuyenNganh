@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sản Phẩm & Quản Lý Kho Hàng | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/frontend/assets/css/main.css">
+  <link rel="stylesheet" href="/frontend/dashboard/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    (function() {
+      const token = localStorage.getItem('dacn_token');
+      const userStr = localStorage.getItem('dacn_user');
+      if (!token || !userStr) {
+        window.location.replace('/frontend/auth/login.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(userStr);
+        const role = (u.role || 'user').toLowerCase();
+      } catch (e) {
+        window.location.replace('/frontend/auth/login.html');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR ĐIỀU HƯỚNG -->
+    <!-- SIDEBAR ĐIỀU HƯỚNG (PHÂN NHÓM CHỨC NĂNG RÕ RÀNG) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE SYSTEM</h2>
+          <span>Business Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- NHÓM 1: BÁO CÁO & THỐNG KÊ -->
+        <div class="nav-group" id="nav-group-analytics">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-chart-pie"></i> Báo Cáo & Thống Kê
+          </div>
+          <a href="/frontend/dashboard/dashboard.html" class="nav-link ">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tổng Quan Doanh Thu</span>
+          </a>
+          <a href="/frontend/customers/customer-rfm.html" class="nav-link ">
+            <i class="fa-solid fa-users-viewfinder"></i>
+            <span>Phân Khúc Khách Hàng</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 2: VẬN HÀNH & BÁN HÀNG -->
+        <div class="nav-group" id="nav-group-operations">
+          <div class="nav-section-title" id="title-operations">
+            <i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng
+          </div>
+          <a href="/frontend/orders/orders.html" class="nav-link ">
+            <i class="fa-solid fa-cart-flatbed"></i>
+            <span>Quản Lý Đơn Hàng</span>
+          </a>
+          <a href="/frontend/products/products.html" class="nav-link active">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Kho Hàng & Sản Phẩm</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 3: TRÍ TUỆ NHÂN TẠO (AI) -->
+        <div class="nav-group" id="nav-group-ai">
+          <div class="nav-section-title" id="title-ai">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)
+          </div>
+          <a href="/frontend/ai/revenue-planner.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Lập Kế Hoạch Doanh Thu</span>
+            <span class="badge-tag badge-dss">DSS</span>
+          </a>
+          <a href="/frontend/ai/ai-strategy.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Chiến Lược Giá & Combo</span>
+            <span class="badge-tag badge-pro">PRO</span>
+          </a>
+          <a href="/frontend/ai/ai-copilot.html" class="nav-link ">
+            <i class="fa-solid fa-comments"></i>
+            <span>Trợ Lý AI Doanh Nghiệp</span>
+            <span class="badge-tag badge-chat">COPILOT</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 4: CẤU HÌNH HỆ THỐNG (CHỈ ADMIN) -->
+        <div class="nav-group" id="nav-group-admin" style="display:none;">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-gear"></i> Cấu Hình Hệ Thống
+          </div>
+          <a href="/frontend/users/users.html" class="nav-link ">
+            <i class="fa-solid fa-users-gear"></i>
+            <span>Quản Trị Người Dùng</span>
+            <span class="badge-tag badge-admin">ADMIN</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">U</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Đang tải...</span>
+            <span class="role" id="sidebar-user-role">...</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Quản Lý Sản Phẩm, Giá Vốn & Tồn Kho</h1>
+          <p>Dữ liệu đồng bộ trực tiếp từ SQL Server (Server: TOM • Database: RevenueSystemDB)</p>
+        </div>
+        <div class="nav-actions" style="display:flex; gap:10px;">
+          <button id="btn-import-product" class="btn btn-secondary" onclick="openImportProductModal()" style="padding:8px 16px; font-size:13px; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1;">
+            <i class="fa-solid fa-file-import" style="color:#2563eb; margin-right:6px;"></i> Import File Sản Phẩm
+          </button>
+          <button id="btn-add-product" class="btn btn-primary" onclick="openAddModal()" style="padding:8px 16px; font-size:13px;">
+            <i class="fa-solid fa-plus"></i> Thêm Sản Phẩm Mới
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- 3 THẺ CHỈ SỐ KHO HÀNG -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom:24px;">
+          <div class="glass-card kpi-card" style="--card-border-color: #2563eb;">
+            <span class="kpi-title">Tổng Số Danh Mục Hàng</span>
+            <div class="kpi-value" id="summary-total-products" style="margin-top:8px;">0 Mặt Hàng</div>
+            <div class="kpi-trend neutral"><i class="fa-solid fa-tags"></i> Phân loại đa ngành</div>
+          </div>
+
+          <div class="glass-card kpi-card" style="--card-border-color: #06b6d4;">
+            <span class="kpi-title">Tổng Lượng Tồn Kho</span>
+            <div class="kpi-value" id="summary-total-stock" style="margin-top:8px;">0 Cái</div>
+            <div class="kpi-trend positive"><i class="fa-solid fa-box"></i> Hàng hóa sẵn sàng xuất</div>
+          </div>
+
+          <div id="kpi-inventory-value-card" class="glass-card kpi-card" style="--card-border-color: #10b981;">
+            <span class="kpi-title">Tổng Giá Trị Vốn Kho (COGS)</span>
+            <div class="kpi-value" id="summary-inventory-value" style="margin-top:8px;">0 ₫</div>
+            <div class="kpi-trend positive"><i class="fa-solid fa-vault"></i> Giá trị tài sản lưu kho</div>
+          </div>
+        </div>
+
+        <!-- BỘ LỌC & TÌM KIẾM -->
+        <div class="glass-card" style="padding:16px 22px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; flex:1;">
+            
+            <div style="position:relative; min-width:280px; flex:1;">
+              <input type="text" id="search-product" placeholder="Tìm theo tên sản phẩm hoặc mã SKU..." 
+                     style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px 14px 10px 38px; border-radius:var(--radius-sm); font-size:13px;">
+              <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:12px; color:var(--text-muted);"></i>
+            </div>
+
+            <div style="min-width:200px;">
+              <select id="filter-category" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px 14px; border-radius:var(--radius-sm); font-size:13px;">
+                <option value="All">Tất cả danh mục</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH SẢN PHẨM -->
+        <div class="glass-card data-table-card">
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead>
+                <tr id="products-table-header">
+                  <th>Mã SKU</th>
+                  <th>Tên Sản Phẩm / Danh Mục</th>
+                  <th class="cost-col">Giá Vốn (COGS)</th>
+                  <th>Giá Bán Niêm Yết</th>
+                  <th class="cost-col">Biên Lợi Nhuận</th>
+                  <th>Số Lượng Tồn</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <!-- Render động từ JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL THÊM SẢN PHẨM MỚI -->
+  <div id="add-product-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(2px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div class="glass-card" style="width:100%; max-width:500px; padding:30px; background:#121826; border:1px solid #e2e8f0; background:#ffffff; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-size:18px; color:#0f172a;"><i class="fa-solid fa-plus-circle" style="color:var(--accent-primary); margin-right:8px;"></i> Thêm Sản Phẩm Mới</h3>
+        <button onclick="closeAddModal()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="add-product-form">
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Mã SKU (Duy nhất):</label>
+          <input type="text" id="modal-sku" required placeholder="SKU-099" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Tên sản phẩm:</label>
+          <input type="text" id="modal-name" required placeholder="Ví dụ: Áo sơ mi nam Oxford..." style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Danh mục hàng:</label>
+          <select id="modal-category" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;"></select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Giá vốn COGS (VNĐ):</label>
+            <input type="number" id="modal-cost" required placeholder="150000" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Giá bán niêm yết (VNĐ):</label>
+            <input type="number" id="modal-price" required placeholder="320000" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <label style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Số lượng nhập kho ban đầu:</label>
+          <input type="number" id="modal-stock" required placeholder="50" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Hủy Bỏ</button>
+          <button type="submit" class="btn btn-primary">Lưu Vào SQL Server</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL IMPORT SẢN PHẨM TỪ FILE (EXCEL / CSV) -->
+  <div id="import-products-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(2px); z-index:999; align-items:center; justify-content:center; padding:16px;">
+    <div class="glass-card" style="width:100%; max-width:540px; padding:28px; border:1px solid #e2e8f0; background:#ffffff; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1); box-shadow:0 20px 50px rgba(0,0,0,0.5); position:relative;">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:8px; background:rgba(16, 185, 129, 0.15); border:1px solid rgba(16, 185, 129, 0.3); display:flex; align-items:center; justify-content:center; color:var(--accent-emerald);">
+            <i class="fa-solid fa-boxes-packing" style="font-size:16px;"></i>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:700; color:#0f172a; margin:0;">Nhập Sản Phẩm & Kho Hàng</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0 0;">Nạp danh mục, giá vốn và tồn kho từ Excel (.xlsx) hoặc CSV (.csv)</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeImportProductModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Khung tải file mẫu -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span style="font-size:13px; color:#0f172a; font-weight:600; display:block;">File mẫu chuẩn sản phẩm:</span>
+          <small style="font-size:11px; color:var(--text-muted);">Gồm Mã SKU, Tên, Danh mục, Giá vốn, Giá bán, Tồn kho</small>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="downloadProductTemplate()" style="padding:6px 12px; font-size:12px; white-space:nowrap;">
+          <i class="fa-solid fa-download" style="color:var(--accent-emerald);"></i> Tải File Mẫu
+        </button>
+      </div>
+
+      <!-- Khung Kéo thả Drop Zone -->
+      <div id="product-drop-zone" style="border:2px dashed var(--border-subtle); border-radius:12px; padding:32px 20px; text-align:center; background:rgba(255,255,255,0.015); cursor:pointer; transition:all 0.2s;" onclick="document.getElementById('product-file-input').click()">
+        <input type="file" id="product-file-input" accept=".csv, .xlsx, .xls" style="display:none;">
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size:36px; color:var(--accent-emerald); margin-bottom:12px; display:block;"></i>
+        <div style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:4px;">Kéo & Thả file vào đây hoặc bấm để chọn</div>
+        <div style="font-size:12px; color:var(--text-muted);">Hỗ trợ file .xlsx, .xls, .csv dung lượng tối đa 10MB</div>
+      </div>
+
+      <!-- Thông tin file đã chọn -->
+      <div id="product-file-info" style="display:none; align-items:center; justify-content:space-between; background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); border-radius:8px; padding:12px 16px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <i class="fa-solid fa-file-excel" style="font-size:24px; color:var(--accent-emerald);"></i>
+          <div>
+            <div id="product-file-name" style="font-size:13px; font-weight:600; color:#0f172a;">san_pham.xlsx</div>
+            <small id="product-file-size" style="font-size:11px; color:var(--text-muted);">0 KB</small>
+          </div>
+        </div>
+        <button type="button" onclick="resetProductImportState()" style="background:transparent; border:none; color:var(--accent-rose); cursor:pointer;" title="Xóa file đã chọn">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+
+      <!-- Thanh Loading -->
+      <div id="product-import-progress" style="display:none; margin:16px 0; text-align:center;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; color:var(--accent-emerald); font-size:13px; font-weight:600;">
+          <i class="fa-solid fa-spinner fa-spin"></i> Đang nạp danh mục sản phẩm vào SQL Server...
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button type="button" class="btn btn-secondary" onclick="closeImportProductModal()" style="padding:9px 18px;">Đóng</button>
+        <button type="button" id="btn-submit-import-products" class="btn btn-primary" onclick="submitImportProducts()" disabled style="padding:9px 20px;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Bắt Đầu Nạp Sản Phẩm
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/frontend/assets/js/api.js"></script>
+  <script src="/frontend/orders/import_helper.js"></script>
+  <script src="/frontend/products/products.js"></script>
+</body>
+</html>

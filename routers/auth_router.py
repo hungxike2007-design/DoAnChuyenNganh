@@ -153,13 +153,20 @@ def get_all_users(admin: dict = Depends(require_roles("admin"))):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id, full_name, email, role, avatar_url, 
-               CONVERT(VARCHAR(19), created_at, 120) as created_at
-        FROM users
-        ORDER BY id ASC
+        SELECT u.id, u.full_name, u.email, u.role, u.avatar_url, 
+               CONVERT(VARCHAR(10), u.created_at, 120) as created_at,
+               COUNT(o.id) as total_orders,
+               COALESCE(SUM(o.net_amount), 0) as total_revenue
+        FROM users u
+        LEFT JOIN orders o ON u.id = o.user_id AND o.status = 'completed'
+        GROUP BY u.id, u.full_name, u.email, u.role, u.avatar_url, CONVERT(VARCHAR(10), u.created_at, 120)
+        ORDER BY total_revenue DESC, u.id ASC
     """)
     users = cursor.fetchall()
     conn.close()
+    for u in users:
+        u["total_revenue"] = float(u.get("total_revenue", 0.0) or 0.0)
+        u["total_orders"] = int(u.get("total_orders", 0) or 0)
     return {"success": True, "data": users}
 
 

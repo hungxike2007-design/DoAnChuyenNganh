@@ -130,5 +130,15 @@ CREATE TABLE ai_strategy_logs (
 );
 GO
 
-PRINT N'✅ Đã khởi tạo cấu trúc toàn bộ 8 bảng thành công trong SQL Server!';
+-- 11. Tạo Bảng ai_chat_messages (Lịch sử hội thoại AI Copilot theo tài khoản)
+CREATE TABLE ai_chat_messages (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT FOREIGN KEY REFERENCES users(id) ON DELETE CASCADE,
+    sender NVARCHAR(20) NOT NULL,
+    message NVARCHAR(MAX) NOT NULL,
+    created_at DATETIME2 DEFAULT GETDATE()
+);
+GO
+
+PRINT N'✅ Đã khởi tạo cấu trúc toàn bộ các bảng thành công trong SQL Server!';
 GO

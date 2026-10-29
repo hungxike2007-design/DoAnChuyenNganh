@@ -182,9 +182,12 @@ function fillDemoAccount(role) {
   } else if (role === 'manager') {
     emailInput.value = 'manager@dacn.vn';
     showToast('Tài khoản MANAGER: Thống kê Doanh thu, RFM & AI Strategy (Không quản trị user)', 'info');
+  } else if (role === 'sales') {
+    emailInput.value = 'sales@dacn.vn';
+    showToast('Tài khoản SALES: Bán hàng, tạo đơn hàng đa kênh & tra cứu sản phẩm', 'info');
   } else {
     emailInput.value = 'user@dacn.vn';
-    showToast('Tài khoản USER / SALES: Chỉ có chức năng Quản lý Đơn Hàng & Kho Hàng', 'info');
+    showToast('Tài khoản USER: Người dùng / Khách hàng xem đơn hàng cá nhân & tra cứu', 'info');
   }
   passwordInput.value = '123456';
 }

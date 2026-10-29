@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phân Khúc Khách Hàng (RFM) | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/frontend/assets/css/main.css">
+  <link rel="stylesheet" href="/frontend/dashboard/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    (function() {
+      const token = localStorage.getItem('dacn_token');
+      const userStr = localStorage.getItem('dacn_user');
+      if (!token || !userStr) {
+        window.location.replace('/frontend/auth/login.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(userStr);
+        const role = (u.role || 'user').toLowerCase();
+        if (role !== 'admin' && role !== 'manager') {
+          window.location.replace('/frontend/orders/orders.html');
+        }
+      } catch (e) {
+        window.location.replace('/frontend/auth/login.html');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <!-- SIDEBAR ĐIỀU HƯỚNG (PHÂN NHÓM CHỨC NĂNG RÕ RÀNG) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE SYSTEM</h2>
+          <span>Business Portal</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <!-- NHÓM 1: BÁO CÁO & THỐNG KÊ -->
+        <div class="nav-group" id="nav-group-analytics">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-chart-pie"></i> Báo Cáo & Thống Kê
+          </div>
+          <a href="/frontend/dashboard/dashboard.html" class="nav-link ">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tổng Quan Doanh Thu</span>
+          </a>
+          <a href="/frontend/customers/customer-rfm.html" class="nav-link active">
+            <i class="fa-solid fa-users-viewfinder"></i>
+            <span>Phân Khúc Khách Hàng</span>
+          </a>
+        </div>
+        <!-- NHÓM 2: VẬN HÀNH & BÁN HÀNG -->
+        <div class="nav-group" id="nav-group-operations">
+          <div class="nav-section-title" id="title-operations">
+            <i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng
+          </div>
+          <a href="/frontend/orders/orders.html" class="nav-link ">
+            <i class="fa-solid fa-cart-flatbed"></i>
+            <span>Quản Lý Đơn Hàng</span>
+          </a>
+          <a href="/frontend/products/products.html" class="nav-link ">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Kho Hàng & Sản Phẩm</span>
+          </a>
+        </div>
+        <!-- NHÓM 3: TRÍ TUỆ NHÂN TẠO (AI) -->
+        <div class="nav-group" id="nav-group-ai">
+          <div class="nav-section-title" id="title-ai">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)
+          </div>
+          <a href="/frontend/ai/revenue-planner.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Lập Kế Hoạch Doanh Thu</span>
+            <span class="badge-tag badge-dss">DSS</span>
+          </a>
+          <a href="/frontend/ai/ai-strategy.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Chiến Lược Giá & Combo</span>
+            <span class="badge-tag badge-pro">PRO</span>
+          </a>
+          <a href="/frontend/ai/ai-copilot.html" class="nav-link ">
+            <i class="fa-solid fa-comments"></i>
+            <span>Trợ Lý AI Doanh Nghiệp</span>
+            <span class="badge-tag badge-chat">COPILOT</span>
+          </a>
+        </div>
+        <!-- NHÓM 4: CẤU HÌNH HỆ THỐNG (CHỈ ADMIN) -->
+        <div class="nav-group" id="nav-group-admin" style="display:none;">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-gear"></i> Cấu Hình Hệ Thống
+          </div>
+          <a href="/frontend/users/users.html" class="nav-link ">
+            <i class="fa-solid fa-users-gear"></i>
+            <span>Quản Trị Người Dùng</span>
+            <span class="badge-tag badge-admin">ADMIN</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">U</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Đang tải...</span>
+            <span class="role" id="sidebar-user-role">...</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+    <!-- NỘI DUNG -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Phân Tích Phân Khúc Khách Hàng (RFM Model)</h1>
+          <p>Phân loại khách hàng theo độ mới (Recency), tần suất (Frequency) và giá trị tiền tệ (Monetary)</p>
+        </div>
+      </header>
+      <div class="content-body">
+        <!-- THANH HƯỚNG DẪN TƯƠNG TÁC -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:13.5px; font-weight:600; color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-arrow-pointer" style="color:var(--accent-primary);"></i>
+            <span>Bấm vào từng thẻ phân khúc để lọc & xem cụ thể danh sách khách hàng tương ứng:</span>
+          </div>
+          <button id="btn-show-all" class="btn btn-secondary" style="font-size:12.5px; padding:6px 14px; border-radius:6px; display:none;" onclick="toggleSegmentFilter('All')">
+            <i class="fa-solid fa-rotate-left"></i> Xem Tất Cả (16 khách)
+          </button>
+        </div>
+        <!-- LƯỚI THẺ PHÂN KHÚC (BẤM VÀO ĐỂ LỌC KHÁCH HÀNG) -->
+        <div class="kpi-grid" id="rfm-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom:20px;">
+          <!-- Render động từ JS -->
+        </div>
+        <!-- KHUNG CHIẾN LƯỢC HÀNH ĐỘNG CỤ THỂ CHO PHÂN KHÚC ĐANG CHỌN -->
+        <div id="segment-strategy-banner" class="glass-card" style="margin-bottom:24px; padding:16px 20px; border-left:4px solid var(--accent-primary); display:none; background:#ffffff; box-shadow:var(--shadow-sm); border-radius:var(--radius-md);">
+          <!-- Render động từ JS -->
+        </div>
+        <!-- BẢNG KHÁCH HÀNG CỤ THỂ -->
+        <div class="glass-card data-table-card" style="background:#ffffff; border:1px solid var(--border-card); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); padding:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+            <div>
+              <h3 id="table-headline" style="font-size:16px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; margin:0;">
+                <i class="fa-solid fa-users" style="color:var(--accent-primary);"></i> Danh Sách Toàn Bộ Khách Hàng (Tất Cả Phân Khúc)
+              </h3>
+              <p id="table-subline" style="font-size:12.5px; color:var(--text-muted); margin:4px 0 0 0;">
+                Hiển thị thông tin liên hệ, ngày mua gần nhất và lịch sử đơn hàng để chủ động chăm sóc.
+              </p>
+            </div>
+            <span id="table-count-badge" class="badge-tag badge-dss" style="font-size:11.5px; padding:4px 10px;">16 Khách Hàng</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width:50px; text-align:center;">STT</th>
+                  <th>Khách Hàng & Liên Hệ</th>
+                  <th>Khu Vực</th>
+                  <th>Phân Khúc</th>
+                  <th>Đơn Mua Gần Nhất</th>
+                  <th style="text-align:center;">Số Đơn</th>
+                  <th>Tổng Chi Tiêu</th>
+                  <th style="text-align:center;">Hành Động CSKH</th>
+                </tr>
+              </thead>
+              <tbody id="top-customers-tbody">
+                <!-- Render động từ JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div id="toast-container"></div>
+  <script src="/frontend/assets/js/api.js"></script>
+  <script src="/frontend/customers/rfm.js"></script>
+</body>
+</html>

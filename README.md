@@ -3,7 +3,7 @@
 > **Đề tài Đồ Án Chuyên Ngành / Tốt Nghiệp**  
 > **Ngôn ngữ:** Python (FastAPI) & JavaScript/HTML5/CSS3 Hiện Đại  
 > **Cơ sở dữ liệu:** SQLite (Quan hệ chuẩn SQL)  
-> **Trí tuệ nhân tạo:** Google Gemini API (Mô hình: `gemini-2.5-flash`)
+> **Trí tuệ nhân tạo:** Google Gemini API (Mô hình: `gemini-3.5-flash`)
 
 ---
 
@@ -22,6 +22,7 @@
 4. **Bộ Não Tối Ưu Chiến Lược Bán Hàng Bằng Gemini AI:**
    - **Tóm tắt điều hành & Phát hiện bất thường:** AI tự động đọc dữ liệu SQL và chỉ ra điểm sáng, rủi ro, và 3 hành động cụ thể cho tuần tới.
    - **Chiến lược Giá Động (Dynamic Pricing) & Gợi ý Combo:** Phân tích hàng bán chậm và đề xuất combo kích cầu xả hàng mà vẫn đảm bảo biên lợi nhuận trên giá vốn (COGS).
+   - **Phân hệ Lập Kế Hoạch Phân Bổ Mục Tiêu Doanh Thu (Revenue Goal Planner):** Nhập mục tiêu doanh thu hoặc chọn mức tăng trưởng (+10%, +20%, +30%), Gemini AI tự động phân rã hạn mức Quota theo 4 kênh bán lẻ, giỏ hàng AOV và vạch ra lộ trình hành động 4 tuần chi tiết.
    - **AI Business Copilot:** Trợ lý ảo hỏi đáp trực tiếp về số liệu kinh doanh qua ngôn ngữ tự nhiên.
 5. **Bảo Mật API Key Tuyệt Đối Khi Đẩy Lên GitHub:**
    - Toàn bộ key và cấu hình nhạy cảm được đặt trong file `.env`.
@@ -103,7 +104,7 @@ pip install -r requirements.txt
 2. Mở file `.env` và dán key vào:
 ```env
 GEMINI_API_KEY=AIzaSyD-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash
 ```
 *(Nếu bạn chưa nhập key, hệ thống vẫn có chế độ Mock AI thông minh để bạn thuyết trình demo không bị lỗi!)*
 

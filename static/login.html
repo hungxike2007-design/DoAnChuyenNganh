@@ -62,18 +62,22 @@
         <div style="font-weight:700; margin-bottom:6px; color:#fff; font-size:12px;">
           💡 Chọn nhanh tài khoản kiểm thử phân quyền (Pass: 123456):
         </div>
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; margin-top:8px;">
-          <button type="button" class="btn btn-secondary" style="padding:6px 4px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('admin')" title="Toàn quyền thống kê & quản trị users">
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-top:8px;">
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('admin')" title="Toàn quyền thống kê & quản trị users">
             <span style="font-weight:700; color:#c084fc;">👑 Admin</span>
-            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Toàn quyền & Users</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Toàn quyền</span>
           </button>
-          <button type="button" class="btn btn-secondary" style="padding:6px 4px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('manager')" title="Xem thống kê doanh thu & AI">
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('manager')" title="Xem thống kê doanh thu & AI">
             <span style="font-weight:700; color:#22d3ee;">💼 Manager</span>
-            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Thống kê & AI</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Báo cáo & AI</span>
           </button>
-          <button type="button" class="btn btn-secondary" style="padding:6px 4px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('user')" title="Chỉ xem đơn hàng & kho sản phẩm">
-            <span style="font-weight:700; color:#34d399;">👤 User (Sales)</span>
-            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Đơn hàng & Kho</span>
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('sales')" title="Tạo đơn hàng & tra cứu bán hàng">
+            <span style="font-weight:700; color:#34d399;">🛒 Sales</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Bán hàng</span>
+          </button>
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('user')" title="Người dùng / khách hàng">
+            <span style="font-weight:700; color:#38bdf8;">👤 User</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Khách hàng</span>
           </button>
         </div>
       </div>

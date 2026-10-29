@@ -14,6 +14,7 @@ Chức năng chính:
 
 import os
 import sys
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -27,7 +28,12 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+raw_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
+# Tự động thay thế nếu dùng model cũ đã ngừng hỗ trợ (như gemini-2.5-flash)
+if raw_model in ("gemini-2.5-flash", "gemini-1.5-flash", ""):
+    GEMINI_MODEL = "gemini-3.5-flash"
+else:
+    GEMINI_MODEL = raw_model
 
 client = None
 is_ai_ready = False
@@ -49,26 +55,48 @@ else:
     print("=" * 68 + "\n")
 
 
+def clean_ai_text(text: str) -> str:
+    """Xóa bỏ các dấu tiêu đề ###, ####, ##, # khỏi kết quả do AI sinh ra."""
+    if not text:
+        return ""
+    # Xóa các dấu ###, ####, ##, # ở đầu dòng hoặc trước tiêu đề
+    cleaned = re.sub(r'#{1,6}\s*', '', text)
+    return cleaned.strip()
+
+
 def generate_ai_response(prompt: str, system_instruction: str = "") -> str:
     """
     Gọi API Gemini để phân tích dữ liệu và đề xuất chiến lược kinh doanh.
-    Có cơ chế dự phòng thông minh nếu chưa có API key.
+    Có cơ chế tự động thử model dự phòng (Fallback) nếu model chính gặp lỗi (404/503/quá tải).
     """
     if is_ai_ready and client is not None:
-        try:
-            config = {}
-            if system_instruction:
-                config["system_instruction"] = system_instruction
-                
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=config if config else None
-            )
-            return response.text
-        except Exception as e:
-            print(f"❌ [Gemini API Error]: {e}", file=sys.stderr)
-            raise RuntimeError(f"Lỗi khi gọi Google Gemini API: {str(e)}")
+        # Danh sách model theo thứ tự ưu tiên
+        candidate_models = [GEMINI_MODEL]
+        for fallback in ["gemini-3.5-flash", "gemini-3.1-flash-lite"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
+
+        last_error = None
+        for model_name in candidate_models:
+            try:
+                config = {}
+                if system_instruction:
+                    config["system_instruction"] = system_instruction
+                    
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config if config else None
+                )
+                if response and response.text:
+                    return clean_ai_text(response.text)
+            except Exception as e:
+                last_error = e
+                print(f"⚠️ [Gemini Model Fallback] Model '{model_name}' gặp lỗi: {e}. Đang thử model tiếp theo...", file=sys.stderr)
+                continue
+
+        print(f"❌ [Gemini API Error - Tất cả model thất bại]: {last_error}", file=sys.stderr)
+        raise RuntimeError(f"Lỗi khi gọi Google Gemini API: {str(last_error)}")
 
     # Phản hồi mô phỏng thông minh cho đồ án (khi chưa gán key)
     return (

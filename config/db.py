@@ -61,7 +61,7 @@ class DictCursorWrapper:
     @property
     def lastrowid(self):
         try:
-            self.cursor.execute("SELECT SCOPE_IDENTITY()")
+            self.cursor.execute("SELECT @@IDENTITY")
             row = self.cursor.fetchone()
             return int(row[0]) if row and row[0] is not None else None
         except Exception:

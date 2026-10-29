@@ -18,7 +18,7 @@ from services.analytics_service import AnalyticsService
 class GeminiService:
     @staticmethod
     def generate_executive_summary(user_id: int = None) -> dict:
-        context = AnalyticsService.get_context_for_ai()
+        context = AnalyticsService.get_context_for_ai(user_id=user_id)
         kpis = context["kpis"]
         channels = context["channels"]
         top_products = context["top_products"]
@@ -77,7 +77,7 @@ Hãy phân tích theo cấu trúc sau:
 
     @staticmethod
     def generate_pricing_and_bundle_strategy(user_id: int = None) -> dict:
-        context = AnalyticsService.get_context_for_ai()
+        context = AnalyticsService.get_context_for_ai(user_id=user_id)
         alerts = context["inventory_alerts"]
         top_products = context["top_products"]
 
@@ -127,8 +127,120 @@ Hãy xây dựng chiến lược tối ưu:
         }
 
     @staticmethod
-    def chat_copilot(user_query: str, history: list = None, user_id: int = None) -> dict:
-        context = AnalyticsService.get_context_for_ai()
+    def generate_revenue_goal_plan(target_revenue: float, days: int = 30, user_id: int = None) -> dict:
+        baseline = AnalyticsService.get_planning_baseline(days, user_id=user_id)
+
+        baseline_rev = float(baseline.get("baselineRevenue", 0.0))
+        current_aov = float(baseline.get("baselineAov", 0.0)) or 350000.0
+        channels = baseline.get("channels", [])
+        top_products = baseline.get("topProducts", [])
+        inventory_alerts = baseline.get("inventoryAlerts", [])
+
+        growth_rate = round(((target_revenue - baseline_rev) / baseline_rev) * 100, 1) if baseline_rev > 0 else 0.0
+        target_aov = round(current_aov * 1.05)
+        required_orders = round(target_revenue / target_aov) if target_aov > 0 else 0
+        daily_target = round(target_revenue / days) if days > 0 else 0
+
+        # Phân bổ chỉ tiêu cho từng kênh theo tỷ trọng lịch sử
+        channel_quotas = []
+        for ch in channels:
+            ch_name = ch.get("channel", "Khác")
+            share = (ch.get("share_percent", 0.0) or 0.0) / 100.0
+            ch_target_rev = round(target_revenue * share)
+            ch_aov = ch.get("aov", 0) or target_aov
+            ch_target_orders = round(ch_target_rev / ch_aov) if ch_aov > 0 else 0
+            channel_quotas.append({
+                "channel": ch_name,
+                "sharePercent": ch.get("share_percent", 0.0),
+                "targetRevenue": ch_target_rev,
+                "targetOrders": ch_target_orders,
+                "currentAov": ch_aov
+            })
+
+        system_instruction = (
+            "Bạn là Giám đốc Chiến lược Doanh thu cấp cao (Chief Revenue Officer). "
+            "Nhiệm vụ của bạn là lập kế hoạch phân rã mục tiêu doanh thu và xây dựng lộ trình hành động 4 tuần "
+            "thực tế, có tính khả thi cao bằng Tiếng Việt với định dạng Markdown chuyên nghiệp."
+        )
+
+        prompt = f"""
+Dưới đây là bài toán thiết lập mục tiêu kinh doanh cho chu kỳ {days} ngày tới:
+- Doanh thu cơ sở (thực tế kỳ trước): {baseline_rev:,.0f} VNĐ
+- Doanh thu mục tiêu đề ra: {target_revenue:,.0f} VNĐ (Tăng trưởng: {growth_rate:+.1f}%)
+- Giá trị đơn hàng mục tiêu (Target AOV): {target_aov:,.0f} VNĐ (AOV hiện tại: {current_aov:,.0f} VNĐ)
+- Tổng số đơn hàng thành công cần đạt: {required_orders:,} đơn (Trung bình: {daily_target:,.0f} VNĐ/ngày)
+
+Phân bổ chỉ tiêu sơ bộ theo 4 kênh bán lẻ:
+{json.dumps(channel_quotas, ensure_ascii=False, indent=2)}
+
+Top 3 sản phẩm bán chạy nhất hiện tại:
+{json.dumps(top_products[:3], ensure_ascii=False, indent=2)}
+
+Danh sách sản phẩm tồn kho cần đẩy mạnh xả hàng:
+{json.dumps(inventory_alerts[:3], ensure_ascii=False, indent=2)}
+
+Hãy xây dựng bản Kế Hoạch Chiến Lược Phân Rã Mục Tiêu Doanh Thu theo cấu trúc sau:
+1. 🎯 **Đánh giá Tính Khả Thi & Thách Thức (Feasibility Analysis):** Đánh giá mức tăng trưởng {growth_rate:+.1f}% có khả thi với nguồn lực hiện tại không và 2 thách thức lớn nhất cần giải quyết.
+2. 📊 **Chiến Lược Phân Bổ Hạn Mức Kênh (Channel Allocation Strategy):** Hướng dẫn kênh nào nên tập trung tăng ngân sách ads, kênh nào nên dùng để chốt đơn AOV cao.
+3. 📦 **Đòn Bẩy Sản Phẩm & Giải Phóng Vốn Tồn Kho (Product & Inventory Leverage):** Chiến lược bán kèm (Cross-sell/Bundle) giữa sản phẩm Best-seller và hàng tồn kho để vừa thu hồi vốn vừa đóng góp vào doanh thu mục tiêu.
+4. 🚀 **Lộ Trình Hành Động 4 Tuần (4-Week Step-by-Step Action Roadmap):**
+   - **Tuần 1 (Khởi động & Tái kích hoạt):** Hành động với tệp khách cũ RFM và chuẩn bị kho hàng.
+   - **Tuần 2 (Tăng tốc & Kích cầu Combo):** Chiến dịch marketing đa kênh và gói combo kích AOV.
+   - **Tuần 3 (Đợt sóng Mega Sale giữa kỳ):** Khung giờ vàng Flash sale và đẩy mạnh kênh TikTok/Shopee.
+   - **Tuần 4 (Nước rút & Hoàn tất KPI):** Chăm sóc khách VIP, gọi lại giỏ hàng bỏ quên và đánh giá cán đích.
+5. 🛡️ **Quản Trị Rủi Ro & Vòng Bảo Vệ An Toàn (Guardrails):** Cảnh báo tỷ lệ hủy đơn và nguyên tắc không giảm giá dưới giá vốn (COGS).
+"""
+
+        ai_text = generate_ai_response(prompt, system_instruction)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO ai_strategy_logs (title, strategy_type, user_prompt, ai_response, metrics_context, created_by)
+            VALUES (?, 'goal_plan', ?, ?, ?, ?)
+        """, (
+            f"Kế Hoạch Phân Bổ Mục Tiêu Doanh Thu: {target_revenue:,.0f} VNĐ",
+            f"Mục tiêu {target_revenue:,.0f} VNĐ trong {days} ngày (Tăng trưởng: {growth_rate:+.1f}%)",
+            ai_text,
+            json.dumps({
+                "targetRevenue": target_revenue,
+                "baselineRevenue": baseline_rev,
+                "growthRate": growth_rate,
+                "requiredOrders": required_orders,
+                "targetAov": target_aov,
+                "dailyTarget": daily_target,
+                "channelQuotas": channel_quotas
+            }, ensure_ascii=False),
+            user_id
+        ))
+        conn.commit()
+        log_id = cursor.lastrowid
+        conn.close()
+
+        return {
+            "id": log_id,
+            "title": f"Kế Hoạch Phân Bổ Mục Tiêu Doanh Thu: {target_revenue:,.0f} VNĐ",
+            "targetRevenue": target_revenue,
+            "baselineRevenue": baseline_rev,
+            "growthRate": growth_rate,
+            "requiredOrders": required_orders,
+            "targetAov": target_aov,
+            "dailyTarget": daily_target,
+            "days": days,
+            "channelQuotas": channel_quotas,
+            "content": ai_text,
+            "isLiveAI": is_ai_ready,
+            "model": GEMINI_MODEL
+        }
+
+    @staticmethod
+    def chat_copilot(user_query: str, history: list = None, analytics_user_id: int = None, chat_user_id: int = None, user_id: int = None) -> dict:
+        # Tương thích ngược: nếu truyền user_id cũ
+        if chat_user_id is None and user_id is not None:
+            chat_user_id = user_id
+        if analytics_user_id is None and user_id is not None:
+            analytics_user_id = user_id
+        context = AnalyticsService.get_context_for_ai(user_id=analytics_user_id)
         kpis = context["kpis"]
 
         system_instruction = f"""
@@ -156,6 +268,25 @@ Người dùng hỏi: "{user_query}"
 
         ai_text = generate_ai_response(prompt, system_instruction)
 
+        # Lưu tin nhắn vào CSDL theo tài khoản người dùng
+        if chat_user_id:
+            try:
+                conn = get_db_connection()
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO ai_chat_messages (user_id, sender, message) VALUES (?, 'user', ?)",
+                    (chat_user_id, user_query)
+                )
+                cur.execute(
+                    "INSERT INTO ai_chat_messages (user_id, sender, message) VALUES (?, 'assistant', ?)",
+                    (chat_user_id, ai_text)
+                )
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                import sys
+                print(f"⚠️ [Chat History] Lỗi khi lưu vào CSDL: {e}", file=sys.stderr)
+
         return {
             "reply": ai_text,
             "isLiveAI": is_ai_ready,
@@ -163,15 +294,62 @@ Người dùng hỏi: "{user_query}"
         }
 
     @staticmethod
-    def get_strategy_history(limit: int = 10) -> list:
+    def get_chat_history(user_id: int, limit: int = 100) -> list:
+        if not user_id:
+            return []
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT TOP (?) id, sender, message, created_at 
+                FROM ai_chat_messages 
+                WHERE user_id = ? 
+                ORDER BY id ASC
+            """, (limit, user_id))
+            rows = [dict(r) for r in cur.fetchall()]
+            conn.close()
+            return rows
+        except Exception as e:
+            import sys
+            print(f"⚠️ [Chat History] Lỗi lấy lịch sử chat: {e}", file=sys.stderr)
+            return []
+
+    @staticmethod
+    def clear_chat_history(user_id: int) -> bool:
+        if not user_id:
+            return False
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("DELETE FROM ai_chat_messages WHERE user_id = ?", (user_id,))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            import sys
+            print(f"⚠️ [Chat History] Lỗi xóa lịch sử chat: {e}", file=sys.stderr)
+            return False
+
+    @staticmethod
+    def get_strategy_history(limit: int = 10, user_id: int = None) -> list:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, title, strategy_type, ai_response, created_at 
-            FROM ai_strategy_logs 
-            ORDER BY id DESC
-            OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
-        """, (limit,))
+        if user_id:
+            cursor.execute("""
+                SELECT id, title, strategy_type, ai_response, created_at 
+                FROM ai_strategy_logs 
+                WHERE created_by = ?
+                ORDER BY id DESC
+                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+            """, (user_id, limit))
+        else:
+            cursor.execute("""
+                SELECT id, title, strategy_type, ai_response, created_at 
+                FROM ai_strategy_logs 
+                ORDER BY id DESC
+                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+            """, (limit,))
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         return rows
+

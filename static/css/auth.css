@@ -1,5 +1,6 @@
 /* ==============================================================================
-   CSS CHO MODULE XÁC THỰC (LOGIN, REGISTER, FORGOT PASSWORD)
+   CSS CHO MODULE XÁC THỰC (LOGIN, REGISTER, FORGOT PASSWORD - LIGHT THEME)
+   Phong cách: Chuẩn cơ bản, Nền trắng/xám dịu mắt, Không màu mè
    ============================================================================== */
 
 .auth-wrapper {
@@ -8,70 +9,63 @@
   align-items: center;
   justify-content: center;
   padding: 30px 20px;
-  position: relative;
+  background-color: #f8fafc;
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
-  background: rgba(18, 24, 38, 0.85);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: var(--radius-lg);
-  padding: 40px 36px;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 50px rgba(99, 102, 241, 0.15);
+  padding: 36px 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 10;
-  animation: cardFadeUp 0.4s ease-out;
-}
-
-@keyframes cardFadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 26px;
 }
 
 .auth-header .auth-logo {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  background: var(--gradient-brand);
-  border-radius: var(--radius-md);
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
-  box-shadow: var(--shadow-glow);
+  font-size: 20px;
+  color: #fff;
 }
 
 .auth-header h2 {
-  font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: #0f172a;
   margin-bottom: 6px;
+  letter-spacing: -0.01em;
 }
 
 .auth-header p {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #64748b;
 }
 
 /* Form Groups & Inputs */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .form-group label {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+  color: #334155;
+  margin-bottom: 6px;
 }
 
 .input-container {
@@ -83,57 +77,52 @@
 .input-container i.field-icon {
   position: absolute;
   left: 14px;
-  color: var(--text-muted);
-  font-size: 16px;
+  color: #94a3b8;
+  font-size: 14px;
   pointer-events: none;
-  transition: var(--transition);
 }
 
 .input-container input,
 .input-container select {
   width: 100%;
-  padding: 12px 14px 12px 42px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid var(--border-subtle);
+  padding: 9px 14px 9px 38px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 14px;
+  color: #0f172a;
+  font-size: 13.5px;
   transition: var(--transition);
 }
 
 .input-container input:focus,
 .input-container select:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  background: rgba(15, 23, 42, 0.95);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-}
-
-.input-container input:focus + i.field-icon {
-  color: var(--accent-primary);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .btn-toggle-pw {
   position: absolute;
-  right: 14px;
+  right: 12px;
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: #94a3b8;
   cursor: pointer;
   padding: 4px;
+  font-size: 13px;
 }
 
 .btn-toggle-pw:hover {
-  color: var(--text-primary);
+  color: #0f172a;
 }
 
-/* Auth Actions (Forgot password, Remember me) */
+/* Form Options */
 .form-options {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
-  margin-bottom: 24px;
+  font-size: 12.5px;
+  margin-bottom: 20px;
 }
 
 .remember-me {
@@ -141,57 +130,56 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: #475569;
 }
 
 .remember-me input {
   accent-color: var(--accent-primary);
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .link-highlight {
-  color: var(--accent-cyan);
+  color: #2563eb;
   font-weight: 600;
   transition: var(--transition);
 }
 
 .link-highlight:hover {
-  color: #fff;
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
 .btn-auth-submit {
   width: 100%;
-  padding: 13px;
-  font-size: 15px;
+  padding: 11px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .auth-footer {
   text-align: center;
   font-size: 13px;
-  color: var(--text-muted);
+  color: #64748b;
 }
 
-/* Demo Credentials Hint Box */
+/* Hộp Gợi Ý Tài Khoản Mẫu (Sáng, viền xám nhạt) */
 .demo-hint-box {
-  margin-top: 24px;
+  margin-top: 20px;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px dashed rgba(99, 102, 241, 0.3);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  color: #475569;
 }
 
 .demo-hint-box strong {
-  color: var(--accent-cyan);
+  color: #2563eb;
 }
 
-/* OTP Step Card for Forgot Password */
+/* Bước OTP */
 .step-container {
   display: none;
 }

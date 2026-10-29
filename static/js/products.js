@@ -7,16 +7,19 @@
 let allProducts = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!requireAuth()) return;
+  // Chỉ Admin, Manager, Sales mới có quyền vào quản lý kho hàng. User (Khách hàng) tuyệt đối bị chặn!
+  if (!checkPageRole(['admin', 'manager', 'sales', 'user'])) return;
 
   const user = getUser();
   const role = (user && user.role ? user.role : 'user').toLowerCase();
-  const isStaff = (role === 'sales' || role === 'user');
 
-  // Nếu là Staff (User / Sales), ẩn hoàn toàn các quyền thêm sản phẩm và cột chi phí vốn
-  if (isStaff) {
+  // Nếu là Sales, ẩn quyền thêm/import sản phẩm và ẩn cột chi phí giá vốn (bảo mật tài chính)
+  if (role === 'sales') {
     const addBtn = document.getElementById('btn-add-product');
     if (addBtn) addBtn.style.display = 'none';
+
+    const importBtn = document.getElementById('btn-import-product');
+    if (importBtn) importBtn.style.display = 'none';
 
     const invCard = document.getElementById('kpi-inventory-value-card');
     if (invCard) invCard.style.display = 'none';
@@ -148,7 +151,7 @@ function renderProductsTable(products) {
           </td>
           <td>
             <a href="/static/ai-copilot.html" class="link-highlight" style="font-size:12px;">
-              <i class="fa-solid fa-comments" style="color:var(--accent-cyan); margin-right:4px;"></i> Tư vấn bán hàng
+              <i class="fa-solid fa-comments" style="color:var(--accent-cyan); margin-right:4px;"></i> ${role === 'sales' ? 'Tư vấn bán hàng' : 'Hỏi AI sản phẩm'}
             </a>
           </td>
         </tr>

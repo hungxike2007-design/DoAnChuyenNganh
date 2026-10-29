@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Đơn Hàng Đa Kênh | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/frontend/assets/css/main.css">
+  <link rel="stylesheet" href="/frontend/dashboard/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR ĐIỀU HƯỚNG -->
+    <!-- SIDEBAR ĐIỀU HƯỚNG (PHÂN NHÓM CHỨC NĂNG RÕ RÀNG) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE SYSTEM</h2>
+          <span>Business Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- NHÓM 1: BÁO CÁO & THỐNG KÊ -->
+        <div class="nav-group" id="nav-group-analytics">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-chart-pie"></i> Báo Cáo & Thống Kê
+          </div>
+          <a href="/frontend/dashboard/dashboard.html" class="nav-link ">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tổng Quan Doanh Thu</span>
+          </a>
+          <a href="/frontend/customers/customer-rfm.html" class="nav-link ">
+            <i class="fa-solid fa-users-viewfinder"></i>
+            <span>Phân Khúc Khách Hàng</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 2: VẬN HÀNH & BÁN HÀNG -->
+        <div class="nav-group" id="nav-group-operations">
+          <div class="nav-section-title" id="title-operations">
+            <i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng
+          </div>
+          <a href="/frontend/orders/orders.html" class="nav-link active">
+            <i class="fa-solid fa-cart-flatbed"></i>
+            <span>Quản Lý Đơn Hàng</span>
+          </a>
+          <a href="/frontend/products/products.html" class="nav-link ">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Kho Hàng & Sản Phẩm</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 3: TRÍ TUỆ NHÂN TẠO (AI) -->
+        <div class="nav-group" id="nav-group-ai">
+          <div class="nav-section-title" id="title-ai">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)
+          </div>
+          <a href="/frontend/ai/revenue-planner.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Lập Kế Hoạch Doanh Thu</span>
+            <span class="badge-tag badge-dss">DSS</span>
+          </a>
+          <a href="/frontend/ai/ai-strategy.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Chiến Lược Giá & Combo</span>
+            <span class="badge-tag badge-pro">PRO</span>
+          </a>
+          <a href="/frontend/ai/ai-copilot.html" class="nav-link ">
+            <i class="fa-solid fa-comments"></i>
+            <span>Trợ Lý AI Doanh Nghiệp</span>
+            <span class="badge-tag badge-chat">COPILOT</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 4: CẤU HÌNH HỆ THỐNG (CHỈ ADMIN) -->
+        <div class="nav-group" id="nav-group-admin" style="display:none;">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-gear"></i> Cấu Hình Hệ Thống
+          </div>
+          <a href="/frontend/users/users.html" class="nav-link ">
+            <i class="fa-solid fa-users-gear"></i>
+            <span>Quản Trị Người Dùng</span>
+            <span class="badge-tag badge-admin">ADMIN</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">U</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Đang tải...</span>
+            <span class="role" id="sidebar-user-role">...</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Quản Lý Đơn Hàng Đa Kênh</h1>
+          <p>Dữ liệu giao dịch trực tiếp từ SQL Server (Shopee, TikTok Shop, Cửa hàng, Website)</p>
+        </div>
+        <div class="nav-actions" style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="openImportOrderModal()" style="padding:8px 16px; font-size:13px; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1;">
+            <i class="fa-solid fa-file-import" style="color:#2563eb; margin-right:6px;"></i> Import Dữ Liệu File
+          </button>
+          <button class="btn btn-primary" onclick="openCreateOrderModal()" style="padding:8px 16px; font-size:13px;">
+            <i class="fa-solid fa-plus"></i> Tạo Đơn Hàng Mới
+          </button>
+          <a id="btn-orders-ai" href="/frontend/ai/ai-copilot.html" class="btn btn-ai" style="padding:8px 16px; font-size:13px;">
+            <i class="fa-solid fa-comments"></i> AI Trợ Lý Bán Hàng
+          </a>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- BỘ LỌC ĐƠN HÀNG -->
+        <div class="glass-card" style="padding:18px 24px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label for="filter-channel" style="font-size:13px; font-weight:600; color:#334155;">Kênh bán:</label>
+              <select id="filter-channel" style="background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:8px 14px; border-radius:var(--radius-sm); font-size:13px;">
+                <option value="All">Tất cả kênh bán</option>
+                <option value="Shopee">Shopee</option>
+                <option value="TikTok Shop">TikTok Shop</option>
+                <option value="Cửa hàng trực tiếp">Cửa hàng trực tiếp</option>
+                <option value="Website">Website</option>
+              </select>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label for="filter-status" style="font-size:13px; font-weight:600; color:#334155;">Trạng thái:</label>
+              <select id="filter-status" style="background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:8px 14px; border-radius:var(--radius-sm); font-size:13px;">
+                <option value="All">Tất cả trạng thái</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="shipping">Đang giao</option>
+                <option value="cancelled">Đã hủy</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div>
+            <span class="badge-tag badge-success" id="orders-count-badge" style="font-size:13px; padding:6px 14px;">
+              Đang tải...
+            </span>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH ĐƠN HÀNG -->
+        <div class="glass-card data-table-card">
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Mã Đơn Hàng</th>
+                  <th>Sản Phẩm Đặt Mua</th>
+                  <th>Khách Hàng</th>
+                  <th>Kênh Bán Hàng</th>
+                  <th>Thanh Toán</th>
+                  <th>Thời Gian Đặt</th>
+                  <th>Trạng Thái</th>
+                  <th style="text-align:right;">Số Tiền Thu</th>
+                </tr>
+              </thead>
+              <tbody id="orders-tbody">
+                <!-- Render động từ JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL TẠO ĐƠN HÀNG MỚI (DÀNH CHO USER / SALES / ADMIN) -->
+  <div id="create-order-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(2px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+    <div class="glass-card" style="width:100%; max-width:540px; padding:28px; border:1px solid #e2e8f0; background:#ffffff; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-size:18px; color:#0f172a; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-cart-plus" style="color:#2563eb;"></i> Tạo Đơn Hàng Mới
+        </h3>
+        <button type="button" onclick="closeCreateOrderModal()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="create-order-form">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px; color:#334155; display:block; margin-bottom:6px;">Kênh Bán Hàng</label>
+          <select id="modal-order-channel" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+            <option value="Shopee">Shopee</option>
+            <option value="TikTok Shop">TikTok Shop</option>
+            <option value="Cửa hàng trực tiếp" selected>Cửa hàng trực tiếp (POS)</option>
+            <option value="Website">Website</option>
+          </select>
+        </div>
+
+        <!-- Khối tự nhập tên sản phẩm -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px; color:#334155; display:block; margin-bottom:6px;">
+            <i class="fa-solid fa-box-open" style="color:#2563eb;"></i> Tên Sản Phẩm / Món Hàng
+          </label>
+          <input type="text" id="modal-order-product-name" placeholder="Ví dụ: Giày thể thao nam cao cấp, Áo polo..." style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;" required>
+        </div>
+
+        <!-- Khối nhập Đơn giá & Số lượng -->
+        <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label style="font-size:13px; color:#334155; display:block; margin-bottom:6px;">
+              <i class="fa-solid fa-tag" style="color:#2563eb;"></i> Đơn Giá Bán (VNĐ)
+            </label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input type="number" id="modal-order-price" placeholder="Ví dụ: 250000" min="1000" step="1000" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px 42px 10px 10px; border-radius:6px; font-size:14px; font-weight:600;" oninput="updateModalProductPrice()" required>
+              <span style="position:absolute; right:12px; font-size:12px; font-weight:700; color:#64748b; pointer-events:none;">đ</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label style="font-size:13px; color:#334155; display:block; margin-bottom:6px;">Số Lượng</label>
+            <input type="number" id="modal-order-qty" value="1" min="1" max="100" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px; font-weight:600;" oninput="updateModalProductPrice()">
+          </div>
+        </div>
+
+        <!-- Khối Phương Thức Thanh Toán -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px; color:#334155; display:block; margin-bottom:6px;">Phương Thức Thanh Toán</label>
+          <select id="modal-order-payment" style="width:100%; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; padding:10px; border-radius:6px; font-size:13px;">
+            <option value="Tiền mặt">Tiền mặt</option>
+            <option value="Chuyển khoản">Chuyển khoản</option>
+            <option value="COD">Thu hộ COD</option>
+          </select>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px 16px; border-radius:8px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:#334155; font-size:13px;">Tổng Giá Trị Đơn:</span>
+          <strong id="modal-order-total-preview" style="color:#2563eb; font-size:16px;">0 ₫</strong>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateOrderModal()" style="padding:8px 16px;">Hủy Bỏ</button>
+          <button type="submit" class="btn btn-primary" style="padding:8px 18px;">
+            <i class="fa-solid fa-check"></i> Lưu & Xuất Hóa Đơn
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL IMPORT ĐƠN HÀNG TỪ FILE (EXCEL / CSV) -->
+  <div id="import-orders-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(2px); z-index:999; align-items:center; justify-content:center; padding:16px;">
+    <div class="glass-card" style="width:100%; max-width:540px; padding:28px; border:1px solid #e2e8f0; background:#ffffff; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1); box-shadow:0 20px 50px rgba(0,0,0,0.5); position:relative;">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:8px; background:rgba(6, 182, 212, 0.15); border:1px solid rgba(6, 182, 212, 0.3); display:flex; align-items:center; justify-content:center; color:#2563eb;">
+            <i class="fa-solid fa-file-import" style="font-size:16px;"></i>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:700; color:#0f172a; margin:0;">Nhập Đơn Hàng Từ File</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0 0;">Hỗ trợ định dạng Excel (.xlsx, .xls) và CSV (.csv)</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeImportOrderModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Khung tải file mẫu -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span style="font-size:13px; color:#0f172a; font-weight:600; display:block;">File mẫu chuẩn hệ thống:</span>
+          <small style="font-size:11px; color:var(--text-muted);">Đã cấu hình sẵn các cột Mã đơn, Kênh, Sản phẩm, Đơn giá...</small>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="downloadOrderTemplate()" style="padding:6px 12px; font-size:12px; white-space:nowrap;">
+          <i class="fa-solid fa-download" style="color:var(--accent-emerald);"></i> Tải File Mẫu
+        </button>
+      </div>
+
+      <!-- Khung Kéo thả Drop Zone -->
+      <div id="order-drop-zone" style="border:2px dashed var(--border-subtle); border-radius:12px; padding:32px 20px; text-align:center; background:rgba(255,255,255,0.015); cursor:pointer; transition:all 0.2s;" onclick="document.getElementById('order-file-input').click()">
+        <input type="file" id="order-file-input" accept=".csv, .xlsx, .xls" style="display:none;">
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size:36px; color:#2563eb; margin-bottom:12px; display:block;"></i>
+        <div style="font-size:14px; font-weight:600; color:#0f172a; margin-bottom:4px;">Kéo & Thả file vào đây hoặc bấm để duyệt file</div>
+        <div style="font-size:12px; color:var(--text-muted);">Hỗ trợ file .xlsx, .xls, .csv dung lượng tối đa 10MB</div>
+      </div>
+
+      <!-- Thông tin file đã chọn -->
+      <div id="order-file-info" style="display:none; align-items:center; justify-content:space-between; background:rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.25); border-radius:8px; padding:12px 16px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <i class="fa-solid fa-file-excel" style="font-size:24px; color:var(--accent-emerald);"></i>
+          <div>
+            <div id="order-file-name" style="font-size:13px; font-weight:600; color:#0f172a;">ten_file.xlsx</div>
+            <small id="order-file-size" style="font-size:11px; color:var(--text-muted);">0 KB</small>
+          </div>
+        </div>
+        <button type="button" onclick="resetOrderImportState()" style="background:transparent; border:none; color:var(--accent-rose); cursor:pointer;" title="Xóa file đã chọn">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+
+      <!-- Thanh Loading -->
+      <div id="order-import-progress" style="display:none; margin:16px 0; text-align:center;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#2563eb; font-size:13px; font-weight:600;">
+          <i class="fa-solid fa-spinner fa-spin"></i> Đang phân tích và nạp đơn hàng vào SQL Server...
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button type="button" class="btn btn-secondary" onclick="closeImportOrderModal()" style="padding:9px 18px;">Đóng</button>
+        <button type="button" id="btn-submit-import-orders" class="btn btn-primary" onclick="submitImportOrders()" disabled style="padding:9px 20px;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Bắt Đầu Nạp Dữ Liệu
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/frontend/assets/js/api.js"></script>
+  <script src="/frontend/orders/import_helper.js"></script>
+  <script src="/frontend/orders/orders.js"></script>
+</body>
+</html>

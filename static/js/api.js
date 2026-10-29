@@ -31,7 +31,8 @@ function setUser(user) {
 function logout() {
   localStorage.removeItem('dacn_token');
   localStorage.removeItem('dacn_user');
-  window.location.href = '/static/login.html';
+  const isFrontend = window.location.pathname.startsWith('/frontend/');
+  window.location.href = isFrontend ? '/frontend/auth/login.html' : '/frontend/auth/login.html';
 }
 
 // Wrapper Fetch tự động gán Bearer Token và xử lý lỗi
@@ -107,7 +108,8 @@ function formatVND(number) {
 function requireAuth() {
   const token = getToken();
   if (!token) {
-    window.location.href = '/static/login.html';
+    const isFrontend = window.location.pathname.startsWith('/frontend/');
+    window.location.href = isFrontend ? '/frontend/auth/login.html' : '/frontend/auth/login.html';
     return false;
   }
   return true;
@@ -120,14 +122,21 @@ function checkPageRole(allowedRoles = []) {
   if (!user) return false;
 
   const userRole = (user.role || 'user').toLowerCase();
+  const isFrontend = window.location.pathname.startsWith('/frontend/');
+  const ordersPage = isFrontend ? '/frontend/orders/orders.html' : '/frontend/orders/orders.html';
+  const dashboardPage = isFrontend ? '/frontend/dashboard/dashboard.html' : '/frontend/dashboard/dashboard.html';
+
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     console.warn(`[RBAC] Access denied for role: ${userRole}. Allowed: [${allowedRoles.join(', ')}]`);
-    if (userRole === 'sales' || userRole === 'user') {
-      showToast('Tài khoản của bạn là USER/SALES. Bạn không có quyền truy cập Thống kê của Admin!', 'warning');
-      window.location.replace('/static/orders.html');
+    if (userRole === 'sales') {
+      showToast('Tài khoản SALES không có quyền xem Báo cáo Tài chính / Thống kê Doanh thu!', 'warning');
+      window.location.replace(ordersPage);
+    } else if (userRole === 'user') {
+      showToast('Tài khoản USER không có quyền truy cập trang Quản lý / Báo cáo!', 'warning');
+      window.location.replace(ordersPage);
     } else {
       showToast('Trang này yêu cầu quyền Quản Trị Viên (Admin)!', 'warning');
-      window.location.replace('/static/dashboard.html');
+      window.location.replace(dashboardPage);
     }
     return false;
   }
@@ -135,75 +144,90 @@ function checkPageRole(allowedRoles = []) {
 }
 
 // Cập nhật thông tin tài khoản và điều chỉnh Sidebar linh hoạt theo Role
+// Cập nhật thông tin tài khoản và điều chỉnh Sidebar linh hoạt theo Role
+// Cập nhật thông tin tài khoản và điều chỉnh Sidebar linh hoạt theo Role
 function renderSidebarUser() {
   const user = getUser();
   const nameEl = document.getElementById('sidebar-user-name');
   const roleEl = document.getElementById('sidebar-user-role');
   const avatarEl = document.getElementById('sidebar-user-avatar');
-  const navContainer = document.querySelector('.sidebar-nav');
 
   if (!user) return;
 
   const role = (user.role || 'user').toLowerCase();
   const isStaff = (role === 'sales' || role === 'user');
 
-  if (nameEl) nameEl.textContent = user.fullName || user.name || (isStaff ? 'Nhân Viên Bán Hàng' : 'Quản Lý');
+  if (nameEl) nameEl.textContent = user.fullName || user.name || (role === 'sales' ? 'Nhân Viên Bán Hàng' : role === 'user' ? 'Khách Hàng' : 'Quản Lý');
   if (roleEl) {
-    if (role === 'admin') roleEl.textContent = 'ADMIN (QUẢN TRỊ)';
-    else if (role === 'manager') roleEl.textContent = 'MANAGER (QUẢN LÝ)';
-    else roleEl.textContent = 'USER (BÁN HÀNG)';
+    if (role === 'admin') roleEl.textContent = 'ADMIN';
+    else if (role === 'manager') roleEl.textContent = 'MANAGER';
+    else if (role === 'sales') roleEl.textContent = 'SALES';
+    else roleEl.textContent = 'USER';
   }
-  if (avatarEl) avatarEl.textContent = (user.fullName || user.name || (isStaff ? 'S' : 'A')).charAt(0).toUpperCase();
+  if (avatarEl) avatarEl.textContent = (user.fullName || user.name || (role === 'sales' ? 'S' : role === 'user' ? 'U' : 'A')).charAt(0).toUpperCase();
 
-  // Đổi màu avatar theo Role
+  // Đổi màu avatar theo Role (Màu đơn sắc dịu mắt)
   if (avatarEl) {
-    if (role === 'admin') avatarEl.style.background = 'linear-gradient(135deg, #8b5cf6, #ec4899)';
-    else if (role === 'manager') avatarEl.style.background = 'linear-gradient(135deg, #06b6d4, #3b82f6)';
-    else avatarEl.style.background = 'linear-gradient(135deg, #10b981, #06b6d4)';
+    if (role === 'admin') avatarEl.style.background = '#4f46e5';
+    else if (role === 'manager') avatarEl.style.background = '#2563eb';
+    else if (role === 'sales') avatarEl.style.background = '#059669';
+    else avatarEl.style.background = '#0284c7';
   }
 
-  // PHÂN QUYỀN HIỂN THỊ MENU SIDEBAR THEO ROLE
+  // PHÂN QUYỀN HIỂN THỊ MENU SIDEBAR THEO 4 NHÓM CHỨC NĂNG
+  const groupAnalytics = document.getElementById('nav-group-analytics');
+  const groupOperations = document.getElementById('nav-group-operations');
+  const groupAi = document.getElementById('nav-group-ai');
+  const groupAdmin = document.getElementById('nav-group-admin');
+  const titleOperations = document.getElementById('title-operations');
+  const titleAi = document.getElementById('title-ai');
+
+  if (role === 'user' || role === 'sales') {
+    // 1. TÀI KHOẢN NGƯỜI KINH DOANH ĐỘC LẬP (USER / SALES MERCHANT):
+    // Được sử dụng đầy đủ các tính năng chính: Dashboard cá nhân, Kho hàng, Đơn hàng, Kế hoạch AI, Copilot
+    if (groupAnalytics) {
+      groupAnalytics.style.display = 'block';
+      // Chỉ ẩn RFM toàn hệ thống
+      document.querySelectorAll('a[href*="customer-rfm.html"]').forEach(el => el.style.display = 'none');
+    }
+
+    if (titleOperations) {
+      titleOperations.innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng';
+    }
+
+    // Mở kho hàng riêng của User
+    document.querySelectorAll('a[href*="products.html"]').forEach(el => el.style.display = 'flex');
+
+    // Mở Lập Kế Hoạch Doanh Thu AI (DSS) cho User, chỉ ẩn Chiến lược giá PRO (ai-strategy)
+    document.querySelectorAll('a[href*="revenue-planner.html"]').forEach(el => el.style.display = 'flex');
+    document.querySelectorAll('a[href*="ai-strategy.html"]').forEach(el => el.style.display = 'none');
+
+    if (titleAi) {
+      titleAi.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)';
+    }
+
+    if (groupAdmin) groupAdmin.style.display = 'none';
+  } else {
+    // 2. ADMIN & MANAGER: Quản trị toàn bộ
+    if (groupAnalytics) groupAnalytics.style.display = 'block';
+    document.querySelectorAll('.nav-link').forEach(el => el.style.display = 'flex');
+
+    if (groupAdmin) {
+      groupAdmin.style.display = (role === 'admin') ? 'block' : 'none';
+    }
+  }
+
+  // Fallback an toàn bằng duyệt URL
+  const navContainer = document.querySelector('.sidebar-nav');
   if (navContainer) {
-    // 1. Nếu là SALES hoặc USER: ẨN hoàn toàn Thống kê doanh thu, Phân khúc RFM, Chiến lược AI và Quản trị người dùng
-    if (isStaff) {
-      const sensitiveLinks = [
-        '/static/dashboard.html',
-        '/static/customer-rfm.html',
-        '/static/ai-strategy.html',
-        '/static/users.html'
-      ];
+    if (role === 'user' || role === 'sales') {
+      const userForbidden = ['customer-rfm.html', 'ai-strategy.html', 'users.html'];
       navContainer.querySelectorAll('.nav-link').forEach(link => {
-        const href = link.getAttribute('href');
-        if (sensitiveLinks.some(s => href && href.includes(s))) {
+        const href = link.getAttribute('href') || '';
+        if (userForbidden.some(kw => href.includes(kw))) {
           link.style.display = 'none';
         }
       });
-
-      const titles = navContainer.querySelectorAll('.nav-section-title');
-      if (titles.length > 0) titles[0].textContent = 'Nghiệp Vụ Bán Hàng';
-      if (titles.length > 1) titles[1].textContent = 'Trợ Lý Tư Vấn Bán Hàng';
-    }
-
-    // 2. Nếu là ADMIN: Bổ sung thêm menu "Quản Trị Người Dùng & Phân Quyền"
-    if (role === 'admin') {
-      if (!navContainer.querySelector('a[href*="users.html"]')) {
-        const adminSection = document.createElement('div');
-        adminSection.className = 'nav-section-title';
-        adminSection.textContent = 'Quản Trị Hệ Thống';
-        adminSection.style.color = 'var(--accent-secondary)';
-
-        const usersLink = document.createElement('a');
-        usersLink.href = '/static/users.html';
-        usersLink.className = `nav-link ${window.location.pathname.includes('users.html') ? 'active' : ''}`;
-        usersLink.innerHTML = `
-          <i class="fa-solid fa-users-gear" style="color:var(--accent-secondary);"></i>
-          <span>Quản Trị Người Dùng</span>
-          <span class="badge-tag badge-warning" style="margin-left:auto; font-size:10px;">ADMIN</span>
-        `;
-
-        navContainer.appendChild(adminSection);
-        navContainer.appendChild(usersLink);
-      }
     }
   }
 }

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Nhập | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/frontend/assets/css/main.css">
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <i class="fa-solid fa-chart-line" style="color:#fff;"></i>
+        </div>
+        <h2>Chào Mừng Trở Lại</h2>
+        <p>Đăng nhập hệ thống phân tích doanh thu & tối ưu kinh doanh</p>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Địa chỉ Email</label>
+          <div class="input-container">
+            <input type="email" id="email" required placeholder="admin@dacn.vn" autocomplete="username">
+            <i class="fa-solid fa-envelope field-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Mật khẩu</label>
+          <div class="input-container">
+            <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+            <i class="fa-solid fa-lock field-icon"></i>
+            <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('password')" title="Hiện/Ẩn mật khẩu">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="remember-me">
+            <input type="checkbox" checked>
+            <span>Ghi nhớ đăng nhập</span>
+          </label>
+          <a href="forgot-password.html" class="link-highlight">Quên mật khẩu?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-auth-submit">
+          Đăng Nhập <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Chưa có tài khoản quản lý? 
+        <a href="register.html" class="link-highlight">Đăng ký ngay</a>
+      </div>
+
+      <!-- Khung gợi ý tài khoản mẫu kiểm thử phân quyền RBAC -->
+      <div class="demo-hint-box" style="margin-top:16px; background:rgba(15,23,42,0.6); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+        <div style="font-weight:700; margin-bottom:6px; color:#fff; font-size:12px;">
+          💡 Chọn nhanh tài khoản kiểm thử phân quyền (Pass: 123456):
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-top:8px;">
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('admin')" title="Toàn quyền thống kê & quản trị users">
+            <span style="font-weight:700; color:#818cf8;">👑 Admin</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Toàn quyền</span>
+          </button>
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('manager')" title="Xem thống kê doanh thu & AI">
+            <span style="font-weight:700; color:#60a5fa;">💼 Manager</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Báo cáo & AI</span>
+          </button>
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('sales')" title="Tạo đơn hàng & tra cứu bán hàng">
+            <span style="font-weight:700; color:#34d399;">🛒 Sales</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Bán hàng</span>
+          </button>
+          <button type="button" class="btn btn-secondary" style="padding:6px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; text-align:center;" onclick="fillDemoAccount('user')" title="Người dùng / khách hàng">
+            <span style="font-weight:700; color:#38bdf8;">👤 User</span>
+            <span style="font-size:9px; opacity:0.75; margin-top:2px;">Khách hàng</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/frontend/assets/js/api.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

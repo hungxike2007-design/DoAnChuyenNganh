@@ -3,27 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bảng Điều Khiển Doanh Thu | Phân Tích & AI Chiến Lược</title>
-  <link rel="stylesheet" href="/static/css/main.css">
-  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <title>Bảng Điều Khiển Doanh Thu | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/static/assets/css/main.css">
+  <link rel="stylesheet" href="/static/dashboard/dashboard.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script>
     (function() {
       const token = localStorage.getItem('dacn_token');
       const userStr = localStorage.getItem('dacn_user');
       if (!token || !userStr) {
-        window.location.replace('/static/login.html');
+        window.location.replace('/static/auth/login.html');
         return;
       }
       try {
         const u = JSON.parse(userStr);
-        const role = (u.role || 'user').toLowerCase();
-        if (role !== 'admin' && role !== 'manager') {
-          // User thường và Sales bị chặn tuyệt đối khỏi Thống kê doanh thu của Admin/Manager!
-          window.location.replace('/static/orders.html');
-        }
       } catch (e) {
-        window.location.replace('/static/login.html');
+        window.location.replace('/static/auth/login.html');
       }
     })();
   </script>
@@ -36,52 +31,86 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="logo-badge">
-          <i class="fa-solid fa-chart-pie" style="color:#fff;"></i>
+          <i class="fa-solid fa-chart-simple"></i>
         </div>
         <div class="logo-text">
-          <h2>REVENUE AI</h2>
-          <span>Business Intel</span>
+          <h2>REVENUE SYSTEM</h2>
+          <span>Business Portal</span>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <div class="nav-section-title">Phân Tích & Báo Cáo</div>
-        <a href="/static/dashboard.html" class="nav-link active">
-          <i class="fa-solid fa-chart-line"></i>
-          <span>Tổng Quan Doanh Thu</span>
-        </a>
-        <a href="/static/orders.html" class="nav-link">
-          <i class="fa-solid fa-cart-flatbed"></i>
-          <span>Quản Lý Đơn Hàng</span>
-        </a>
-        <a href="/static/products.html" class="nav-link">
-          <i class="fa-solid fa-boxes-stacked"></i>
-          <span>Sản Phẩm & Kho Hàng</span>
-        </a>
-        <a href="/static/customer-rfm.html" class="nav-link">
-          <i class="fa-solid fa-users-viewfinder"></i>
-          <span>Phân Khúc Khách Hàng</span>
-        </a>
+        <!-- NHÓM 1: BÁO CÁO & THỐNG KÊ -->
+        <div class="nav-group" id="nav-group-analytics">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-chart-pie"></i> Báo Cáo & Thống Kê
+          </div>
+          <a href="/static/dashboard/dashboard.html" class="nav-link active">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tổng Quan Doanh Thu</span>
+          </a>
+          <a href="/static/customers/customer-rfm.html" class="nav-link ">
+            <i class="fa-solid fa-users-viewfinder"></i>
+            <span>Phân Khúc Khách Hàng</span>
+          </a>
+        </div>
 
-        <div class="nav-section-title">Trí Tuệ Nhân Tạo (Gemini)</div>
-        <a href="/static/ai-strategy.html" class="nav-link">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span>Tối Ưu Chiến Lược AI</span>
-          <span class="badge-ai">PRO</span>
-        </a>
-        <a href="/static/ai-copilot.html" class="nav-link">
-          <i class="fa-solid fa-comments"></i>
-          <span>AI Business Copilot</span>
-          <span class="badge-ai">CHAT</span>
-        </a>
+        <!-- NHÓM 2: VẬN HÀNH & BÁN HÀNG -->
+        <div class="nav-group" id="nav-group-operations">
+          <div class="nav-section-title" id="title-operations">
+            <i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng
+          </div>
+          <a href="/static/orders/orders.html" class="nav-link ">
+            <i class="fa-solid fa-cart-flatbed"></i>
+            <span>Quản Lý Đơn Hàng</span>
+          </a>
+          <a href="/static/products/products.html" class="nav-link ">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Kho Hàng & Sản Phẩm</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 3: TRÍ TUỆ NHÂN TẠO (AI) -->
+        <div class="nav-group" id="nav-group-ai">
+          <div class="nav-section-title" id="title-ai">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)
+          </div>
+          <a href="/static/ai/revenue-planner.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Lập Kế Hoạch Doanh Thu</span>
+            <span class="badge-tag badge-dss">DSS</span>
+          </a>
+          <a href="/static/ai/ai-strategy.html" class="nav-link " data-exec-ai="true">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Chiến Lược Giá & Combo</span>
+            <span class="badge-tag badge-pro">PRO</span>
+          </a>
+          <a href="/static/ai/ai-copilot.html" class="nav-link ">
+            <i class="fa-solid fa-comments"></i>
+            <span>Trợ Lý AI Doanh Nghiệp</span>
+            <span class="badge-tag badge-chat">COPILOT</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 4: CẤU HÌNH HỆ THỐNG (CHỈ ADMIN) -->
+        <div class="nav-group" id="nav-group-admin" style="display:none;">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-gear"></i> Cấu Hình Hệ Thống
+          </div>
+          <a href="/static/users/users.html" class="nav-link ">
+            <i class="fa-solid fa-users-gear"></i>
+            <span>Quản Trị Người Dùng</span>
+            <span class="badge-tag badge-admin">ADMIN</span>
+          </a>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
         <div class="user-snippet">
-          <div class="avatar-circle" id="sidebar-user-avatar">M</div>
+          <div class="avatar-circle" id="sidebar-user-avatar">U</div>
           <div class="user-meta">
-            <span class="name" id="sidebar-user-name">Manager</span>
-            <span class="role" id="sidebar-user-role">MANAGER</span>
+            <span class="name" id="sidebar-user-name">Đang tải...</span>
+            <span class="role" id="sidebar-user-role">...</span>
           </div>
         </div>
         <button class="btn-logout" onclick="logout()" title="Đăng xuất">
@@ -90,171 +119,243 @@
       </div>
     </aside>
 
-    <!-- KHU VỰC NỘI DUNG CHÍNH -->
+    <!-- NỘI DUNG CHÍNH -->
     <main class="main-wrapper">
       <header class="top-navbar">
         <div class="page-title">
-          <h1>Bảng Điều Khiển Doanh Thu Đa Kênh</h1>
-          <p>Giám sát thời gian thực số liệu kinh doanh, lợi nhuận và hiệu suất kho</p>
+          <h1 id="dashboard-page-title">Bảng Điều Khiển Doanh Thu</h1>
+          <p id="dashboard-page-desc">Giám sát doanh số, số đơn hàng và hiệu suất bán hàng</p>
         </div>
-        <div class="nav-actions">
-          <a href="/static/ai-strategy.html" class="btn btn-ai" style="padding:8px 16px; font-size:13px;">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Gợi Ý Chiến Lược
+        <div class="nav-actions" style="display:flex; gap:10px;">
+          <a href="/static/orders/orders.html" class="btn btn-secondary">
+            <i class="fa-solid fa-cart-shopping" style="color:#2563eb; margin-right:6px;"></i> Quản Lý Đơn Hàng
+          </a>
+          <a href="/static/ai/revenue-planner.html" class="btn btn-primary">
+            <i class="fa-solid fa-bullseye"></i> Lập Kế Hoạch AI
           </a>
         </div>
       </header>
 
       <div class="content-body">
         
-        <!-- BỘ LỌC THỜI GIAN -->
-        <div class="filter-bar">
-          <div style="font-size:14px; color:var(--text-secondary); font-weight:600;">
-            <i class="fa-solid fa-calendar-days" style="color:var(--accent-cyan); margin-right:6px;"></i>
-            Khoảng thời gian phân tích:
-          </div>
-          <div class="timeframe-group">
-            <button class="btn-timeframe" data-days="7">7 Ngày</button>
-            <button class="btn-timeframe" data-days="30">30 Ngày</button>
-            <button class="btn-timeframe" data-days="90">90 Ngày</button>
-            <button class="btn-timeframe active" data-days="180">6 Tháng</button>
-          </div>
-        </div>
-
-        <!-- 4 THẺ CHỈ SỐ KPI CHÍNH -->
-        <div class="kpi-grid">
+        <!-- KHU VỰC 1: DÀNH CHO ADMIN & MANAGER: BẢNG XẾP HẠNG & QUẢN TRỊ USER (MẶC ĐỊNH) -->
+        <div id="admin-user-ranking-section" style="display:none; margin-bottom:28px;">
           
-          <!-- Thẻ 1: Tổng doanh thu -->
-          <div class="glass-card kpi-card" style="--card-border-color: #6366f1;">
-            <div class="kpi-top">
-              <span class="kpi-title">Doanh Thu Thuần</span>
-              <div class="kpi-icon-badge" style="color:#6366f1;">
-                <i class="fa-solid fa-money-bill-wave"></i>
+          <!-- HỘP TÌM KIẾM NGƯỜI DÙNG -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+            <div style="font-size:14px; font-weight:600; color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-users" style="color:var(--accent-primary);"></i>
+              Danh sách tài khoản kinh doanh (Bấm vào để xem báo cáo doanh thu chi tiết):
+            </div>
+            <div style="width:320px;">
+              <div class="input-container">
+                <i class="fa-solid fa-magnifying-glass field-icon"></i>
+                <input type="text" id="user-search-input" placeholder="Tìm theo tên hoặc email..." oninput="filterUserRankings(this.value)">
               </div>
             </div>
-            <div class="kpi-value" id="kpi-revenue">0 ₫</div>
-            <div class="kpi-trend positive">
-              <i class="fa-solid fa-arrow-trend-up"></i>
-              <span>Tăng trưởng ổn định qua các kênh</span>
-            </div>
           </div>
 
-          <!-- Thẻ 2: Lợi nhuận gộp -->
-          <div class="glass-card kpi-card" style="--card-border-color: #10b981;">
-            <div class="kpi-top">
-              <span class="kpi-title">Lợi Nhuận Gộp</span>
-              <div class="kpi-icon-badge" style="color:#10b981;">
-                <i class="fa-solid fa-sack-dollar"></i>
+          <!-- BẢNG XẾP HẠNG USER LEADERBOARD -->
+          <div class="glass-card data-table-card" style="padding:20px; background:#fff; border:1px solid var(--border-card); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; margin:0;">
+                  <i class="fa-solid fa-ranking-star" style="color:var(--accent-amber);"></i> 
+                  Bảng Xếp Hạng Doanh Thu Người Dùng (Top Performers)
+                </h3>
+                <p style="font-size:12.5px; color:var(--text-muted); margin:4px 0 0 0;">
+                  Bấm vào bất kỳ người dùng nào bên dưới để mở toàn bộ báo cáo doanh thu, đơn hàng và biểu đồ của họ.
+                </p>
               </div>
+              <span id="ranking-users-count" class="badge-tag badge-admin" style="font-size:11.5px; padding:4px 10px;">
+                Đang tải...
+              </span>
             </div>
-            <div class="kpi-value" id="kpi-profit">0 ₫</div>
-            <div class="kpi-trend neutral">
-              <i class="fa-solid fa-percent"></i>
-              <span id="kpi-margin">Tỷ suất lợi nhuận: 0%</span>
-            </div>
-          </div>
 
-          <!-- Thẻ 3: Tổng số đơn hàng -->
-          <div class="glass-card kpi-card" style="--card-border-color: #06b6d4;">
-            <div class="kpi-top">
-              <span class="kpi-title">Tổng Đơn Hàng</span>
-              <div class="kpi-icon-badge" style="color:#06b6d4;">
-                <i class="fa-solid fa-cart-shopping"></i>
-              </div>
-            </div>
-            <div class="kpi-value" id="kpi-orders">0</div>
-            <div class="kpi-trend positive">
-              <i class="fa-solid fa-circle-check"></i>
-              <span id="kpi-completed-rate">0 đơn thành công</span>
-            </div>
-          </div>
-
-          <!-- Thẻ 4: Giá trị trung bình đơn (AOV) -->
-          <div class="glass-card kpi-card" style="--card-border-color: #ec4899;">
-            <div class="kpi-top">
-              <span class="kpi-title">Giá Trị Đơn (AOV)</span>
-              <div class="kpi-icon-badge" style="color:#ec4899;">
-                <i class="fa-solid fa-receipt"></i>
-              </div>
-            </div>
-            <div class="kpi-value" id="kpi-aov">0 ₫</div>
-            <div class="kpi-trend negative">
-              <i class="fa-solid fa-ban"></i>
-              <span id="kpi-cancel-rate">Tỷ lệ hủy: 0%</span>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- 2 KHUNG BIỂU ĐỒ TRỰC QUAN HÓA -->
-        <div class="charts-grid">
-          
-          <!-- Biểu đồ đường xu hướng doanh thu -->
-          <div class="glass-card chart-card">
-            <div class="chart-header">
-              <h3><i class="fa-solid fa-chart-area" style="color:var(--accent-primary); margin-right:8px;"></i> Xu Hướng Doanh Thu Theo Dòng Thời Gian</h3>
-              <small style="color:var(--text-muted);">Cập nhật tự động từ giao dịch SQL</small>
-            </div>
-            <div class="chart-canvas-wrapper">
-              <canvas id="timelineChart"></canvas>
-            </div>
-          </div>
-
-          <!-- Biểu đồ tròn cơ cấu kênh bán -->
-          <div class="glass-card chart-card">
-            <div class="chart-header">
-              <h3><i class="fa-solid fa-pie-chart" style="color:var(--accent-secondary); margin-right:8px;"></i> Tỷ Trọng Kênh Bán Hàng</h3>
-            </div>
-            <div class="chart-canvas-wrapper">
-              <canvas id="channelChart"></canvas>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- BẢNG TOP SẢN PHẨM & CẢNH BÁO TỒN KHO -->
-        <div class="tables-grid">
-          
-          <!-- Bảng 1: Top sản phẩm bán chạy -->
-          <div class="glass-card data-table-card">
-            <h3><i class="fa-solid fa-trophy" style="color:var(--accent-amber); margin-right:8px;"></i> Top Sản Phẩm Bán Chạy Nhất</h3>
             <div style="overflow-x:auto;">
               <table class="custom-table">
                 <thead>
                   <tr>
-                    <th>Hạng</th>
-                    <th>Tên Sản Phẩm / SKU</th>
-                    <th style="text-align:center;">Đã Bán</th>
-                    <th>Doanh Thu</th>
-                    <th>Lợi Nhuận Gộp</th>
+                    <th style="width:65px; text-align:center;">Hạng</th>
+                    <th>Người Dùng / Điểm Bán</th>
+                    <th>Vai Trò</th>
+                    <th style="text-align:center;">Số Đơn Hoàn Thành</th>
+                    <th>Tổng Doanh Thu Đã Tạo</th>
+                    <th>Giá Trị Đơn TB (AOV)</th>
+                    <th>Đơn Gần Nhất</th>
+                    <th style="text-align:center;">Hành Động</th>
                   </tr>
                 </thead>
-                <tbody id="top-products-tbody">
-                  <!-- Render động bằng JS -->
+                <tbody id="user-leaderboard-tbody">
+                  <!-- Render động từ JS -->
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Bảng 2: Cảnh báo tồn kho & Đề xuất xả hàng -->
-          <div class="glass-card data-table-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
-              <h3><i class="fa-solid fa-box-open" style="color:var(--accent-rose); margin-right:8px;"></i> Cảnh Báo Tồn Kho Cần Xử Lý</h3>
-              <span class="badge-tag badge-warning">Cần Tối Ưu</span>
+        </div>
+
+        <!-- KHU VỰC 2: BẢNG CHI TIẾT DOANH THU (CHO USER HOẶC KHI ADMIN BẤM VÀO 1 USER) -->
+        <div id="user-revenue-detail-section" style="display:none;">
+
+          <!-- BANNER THÔNG BÁO CHO ADMIN KHI ĐANG SOI USER -->
+          <div id="inspecting-banner" class="glass-card" style="display:none; justify-content:space-between; align-items:center; padding:14px 18px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:var(--radius-md); margin-bottom:20px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="width:36px; height:36px; border-radius:50%; background:#2563eb; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+              <div>
+                <div style="font-size:14.5px; font-weight:700; color:#1e40af;">
+                  Đang xem chi tiết doanh thu của: <span id="inspecting-user-name" style="color:#1d4ed8;">...</span>
+                </div>
+                <div style="font-size:12px; color:#3b82f6;" id="inspecting-user-email">...</div>
+              </div>
             </div>
-            <div style="overflow-x:auto;">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Sản Phẩm</th>
-                    <th>Số Lượng Tồn</th>
-                    <th>Giá Bán</th>
-                    <th>Hành Động</th>
-                  </tr>
-                </thead>
-                <tbody id="alerts-tbody">
-                  <!-- Render động bằng JS -->
-                </tbody>
-              </table>
+            <button class="btn btn-secondary" onclick="backToUserRanking()" style="font-size:12.5px; padding:6px 14px; font-weight:600;">
+              <i class="fa-solid fa-arrow-left"></i> Quay Lại Bảng Xếp Hạng User
+            </button>
+          </div>
+
+          <!-- BỘ LỌC THỜI GIAN -->
+          <div class="filter-bar">
+            <div style="font-size:14px; color:var(--text-secondary); font-weight:600;">
+              <i class="fa-solid fa-calendar-days" style="color:#2563eb; margin-right:6px;"></i>
+              Khoảng thời gian phân tích:
+            </div>
+            <div class="timeframe-group">
+              <button class="btn-timeframe" data-days="7">7 Ngày</button>
+              <button class="btn-timeframe" data-days="30">30 Ngày</button>
+              <button class="btn-timeframe" data-days="90">90 Ngày</button>
+              <button class="btn-timeframe active" data-days="180">6 Tháng</button>
+            </div>
+          </div>
+
+          <!-- 4 THẺ CHỈ SỐ KPI CHÍNH -->
+          <div class="kpi-grid">
+            <!-- Thẻ 1: Doanh thu thuần -->
+            <div class="glass-card kpi-card" style="--card-border-color: #2563eb;">
+              <div class="kpi-top">
+                <span class="kpi-title">Doanh Thu Thuần</span>
+                <div class="kpi-icon-badge" style="color:#2563eb;">
+                  <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-revenue">0 ₫</div>
+              <div class="kpi-trend positive">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+                <span>Tăng trưởng doanh thu</span>
+              </div>
+            </div>
+
+            <!-- Thẻ 2: Lợi nhuận gộp -->
+            <div class="glass-card kpi-card" style="--card-border-color: #10b981;">
+              <div class="kpi-top">
+                <span class="kpi-title">Lợi Nhuận Gộp</span>
+                <div class="kpi-icon-badge" style="color:#10b981;">
+                  <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-profit">0 ₫</div>
+              <div class="kpi-trend neutral">
+                <i class="fa-solid fa-percent"></i>
+                <span id="kpi-margin">Tỷ suất lợi nhuận: 0%</span>
+              </div>
+            </div>
+
+            <!-- Thẻ 3: Tổng số đơn hàng -->
+            <div class="glass-card kpi-card" style="--card-border-color: #06b6d4;">
+              <div class="kpi-top">
+                <span class="kpi-title">Tổng Đơn Hàng</span>
+                <div class="kpi-icon-badge" style="color:#06b6d4;">
+                  <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-orders">0</div>
+              <div class="kpi-trend positive">
+                <i class="fa-solid fa-circle-check"></i>
+                <span id="kpi-completed-rate">0 đơn thành công</span>
+              </div>
+            </div>
+
+            <!-- Thẻ 4: Giá trị trung bình đơn (AOV) -->
+            <div class="glass-card kpi-card" style="--card-border-color: #f59e0b;">
+              <div class="kpi-top">
+                <span class="kpi-title">Giá Trị Đơn (AOV)</span>
+                <div class="kpi-icon-badge" style="color:#f59e0b;">
+                  <i class="fa-solid fa-receipt"></i>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-aov">0 ₫</div>
+              <div class="kpi-trend negative">
+                <i class="fa-solid fa-ban"></i>
+                <span id="kpi-cancel-rate">Tỷ lệ hủy: 0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2 KHUNG BIỂU ĐỒ TRỰC QUAN HÓA -->
+          <div class="charts-grid">
+            <!-- Biểu đồ đường xu hướng doanh thu -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <h3><i class="fa-solid fa-chart-area" style="color:var(--accent-primary); margin-right:8px;"></i> Xu Hướng Doanh Thu Theo Dòng Thời Gian</h3>
+                <small style="color:var(--text-muted);">Cập nhật từ giao dịch của tài khoản</small>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="timelineChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Biểu đồ tròn cơ cấu kênh bán -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <h3><i class="fa-solid fa-pie-chart" style="color:var(--accent-secondary); margin-right:8px;"></i> Tỷ Trọng Kênh Bán Hàng</h3>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="channelChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- BẢNG TOP SẢN PHẨM & CẢNH BÁO TỒN KHO -->
+          <div class="tables-grid">
+            <!-- Bảng 1: Top sản phẩm bán chạy -->
+            <div class="glass-card data-table-card">
+              <h3><i class="fa-solid fa-trophy" style="color:var(--accent-amber); margin-right:8px;"></i> Top Sản Phẩm Bán Chạy Nhất</h3>
+              <div style="overflow-x:auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Hạng</th>
+                      <th>Tên Sản Phẩm / SKU</th>
+                      <th style="text-align:center;">Đã Bán</th>
+                      <th>Doanh Thu</th>
+                      <th>Lợi Nhuận Gộp</th>
+                    </tr>
+                  </thead>
+                  <tbody id="top-products-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Bảng 2: Cảnh báo tồn kho -->
+            <div class="glass-card data-table-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                <h3><i class="fa-solid fa-box-open" style="color:var(--accent-rose); margin-right:8px;"></i> Cảnh Báo Tồn Kho Cần Xử Lý</h3>
+                <span class="badge-tag badge-warning">Cần Tối Ưu</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Sản Phẩm</th>
+                      <th>Số Lượng Tồn</th>
+                      <th>Giá Bán</th>
+                    </tr>
+                  </thead>
+                  <tbody id="alerts-tbody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -266,7 +367,7 @@
 
   <div id="toast-container"></div>
 
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/dashboard.js"></script>
+  <script src="/static/assets/js/api.js"></script>
+  <script src="/static/dashboard/dashboard.js"></script>
 </body>
 </html>

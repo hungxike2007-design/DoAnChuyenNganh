@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Phân Tích Doanh Thu & Tối Ưu Bán Hàng - Gemini AI</title>
+  <link rel="stylesheet" href="/frontend/assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <script>
+    // Kiểm tra xem đã đăng nhập chưa và điều hướng đúng phân quyền
+    const token = localStorage.getItem('dacn_token');
+    const userStr = localStorage.getItem('dacn_user');
+    let user = null;
+    try { user = JSON.parse(userStr); } catch (e) {}
+
+    if (token && user) {
+      const role = (user.role || 'user').toLowerCase();
+      if (role === 'admin' || role === 'manager') {
+        window.location.replace('/frontend/dashboard/dashboard.html');
+      } else {
+        // Tài khoản User / Sales chỉ truy cập khu vực Bán hàng & Đơn hàng
+        window.location.replace('/frontend/orders/orders.html');
+      }
+    } else {
+      window.location.replace('/frontend/auth/login.html');
+    }
+  </script>
+</body>
+</html>

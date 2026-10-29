@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lập Kế Hoạch & Phân Bổ Mục Tiêu Doanh Thu | Gemini AI DSS</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="/static/css/ai.css">
+  <link rel="stylesheet" href="/static/css/planner.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    (function() {
+      const token = localStorage.getItem('dacn_token');
+      const userStr = localStorage.getItem('dacn_user');
+      if (!token || !userStr) {
+        window.location.replace('/static/login.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(userStr);
+        const role = (u.role || 'user').toLowerCase();
+      } catch (e) {
+        window.location.replace('/static/login.html');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR MENU CHUYÊN NGHIỆP -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-pie" style="color:#fff;"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE AI</h2>
+          <span>Business Intel</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Phân Tích & Báo Cáo</div>
+        <a href="/static/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Tổng Quan Doanh Thu</span>
+        </a>
+        <a href="/static/orders.html" class="nav-link">
+          <i class="fa-solid fa-cart-flatbed"></i>
+          <span>Quản Lý Đơn Hàng</span>
+        </a>
+        <a href="/static/products.html" class="nav-link">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Sản Phẩm & Kho Hàng</span>
+        </a>
+        <a href="/static/customer-rfm.html" class="nav-link">
+          <i class="fa-solid fa-users-viewfinder"></i>
+          <span>Phân Khúc Khách Hàng</span>
+        </a>
+
+        <div class="nav-section-title">Trí Tuệ Nhân Tạo (Gemini)</div>
+        <a href="/static/revenue-planner.html" class="nav-link active">
+          <i class="fa-solid fa-bullseye"></i>
+          <span>Lập Kế Hoạch Doanh Thu</span>
+          <span class="badge-ai" style="background: linear-gradient(135deg, #0284c7, #0284c7);">DSS</span>
+        </a>
+        <a href="/static/ai-strategy.html" class="nav-link">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Tối Ưu Chiến Lược AI</span>
+          <span class="badge-ai">PRO</span>
+        </a>
+        <a href="/static/ai-copilot.html" class="nav-link">
+          <i class="fa-solid fa-comments"></i>
+          <span>AI Business Copilot</span>
+          <span class="badge-ai">CHAT</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">M</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Manager</span>
+            <span class="role" id="sidebar-user-role">MANAGER</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- KHU VỰC NỘI DUNG CHÍNH -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Phân Hệ Lập Kế Hoạch & Phân Bổ Mục Tiêu Doanh Thu</h1>
+          <p>Hệ Thống Hỗ Trợ Ra Quyết Định (DSS) Phân Rã Hạn Mức 4 Kênh Bán Lẻ & Lộ Trình 4 Tuần Cán Đích</p>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- HERO BANNER GIỚI THIỆU PHÂN HỆ -->
+        <div class="planner-hero-card">
+          <div class="planner-hero-content">
+            <span class="ai-badge"><i class="fa-solid fa-crosshairs"></i> Decision Support System (DSS)</span>
+            <h2>Phân Rã Mục Tiêu Tăng Trưởng Kinh Doanh Bằng Gemini AI</h2>
+            <p>
+              Hệ thống tự động liên kết với kho dữ liệu SQL 30 ngày gần nhất (doanh thu cơ sở, AOV giỏ hàng, tỷ trọng 4 kênh) 
+              để biến một con số mục tiêu cấp cao thành <strong>hạn mức (Quota) chi tiết từng kênh</strong> và <strong>lộ trình hành động 4 tuần</strong> cho đội ngũ kinh doanh.
+            </p>
+          </div>
+        </div>
+
+        <!-- THẺ THIẾT LẬP MỤC TIÊU DOANH THU -->
+        <div class="planner-config-card">
+          <div class="config-header-row">
+            <div class="config-title">
+              <i class="fa-solid fa-sliders" style="color:var(--accent-cyan);"></i>
+              <span>Thiết Lập Chỉ Tiêu Doanh Thu Mong Muốn</span>
+            </div>
+            
+            <!-- HIỂN THỊ NĂNG LỰC CƠ SỞ THỰC TẾ TỪ CSDL -->
+            <div class="baseline-stats-pill">
+              <div class="baseline-stat-item">
+                <span><i class="fa-solid fa-database"></i> Doanh thu 30 ngày qua:</span>
+                <strong id="stat-baseline-rev">Đang nạp...</strong>
+              </div>
+              <div class="baseline-stat-item">
+                <span><i class="fa-solid fa-receipt"></i> AOV thực tế:</span>
+                <strong id="stat-baseline-aov">Đang nạp...</strong>
+              </div>
+              <div class="baseline-stat-item">
+                <span><i class="fa-solid fa-box-check"></i> Đơn thành công:</span>
+                <strong id="stat-baseline-orders">Đang nạp...</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORM NHẬP CON SỐ & CHỌN CHU KỲ -->
+          <div class="planner-inputs-grid">
+            <div class="planner-field-group">
+              <label class="planner-field-label" for="target-revenue-input">
+                <i class="fa-solid fa-sack-dollar"></i> Nhập Doanh Thu Mục Tiêu Cho Kỳ Tới (VNĐ):
+              </label>
+              <div class="input-currency-wrapper">
+                <input type="text" id="target-revenue-input" class="planner-main-input" placeholder="Ví dụ: 30,000,000">
+                <span class="currency-symbol">VNĐ</span>
+              </div>
+            </div>
+
+            <div class="planner-field-group">
+              <label class="planner-field-label" for="target-period-select">
+                <i class="fa-regular fa-calendar-check"></i> Khung Thời Gian Kế Hoạch:
+              </label>
+              <select id="target-period-select" class="planner-main-select">
+                <option value="30" selected>30 Ngày Tới (Kế hoạch tháng tới)</option>
+                <option value="60">60 Ngày Tới (Kế hoạch 2 tháng)</option>
+                <option value="90">90 Ngày Tới (Kế hoạch quý tới)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- CÁC NÚT CHỌN NHANH PRESET MỨC TĂNG TRƯỞNG -->
+          <div class="growth-preset-wrapper">
+            <span class="preset-title">Gợi ý tỷ lệ tăng trưởng:</span>
+            <button type="button" class="growth-chip" data-growth="10">+10% (Tăng trưởng ổn định)</button>
+            <button type="button" class="growth-chip active" data-growth="20">+20% (Mục tiêu chuẩn)</button>
+            <button type="button" class="growth-chip" data-growth="30">+30% (Bứt phá doanh số)</button>
+            <button type="button" class="growth-chip" data-growth="50">+50% (Mục tiêu thách thức)</button>
+          </div>
+
+          <div class="planner-action-container">
+            <button id="btn-run-planner" class="btn btn-ai btn-lg">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Phân Bổ Mục Tiêu Bằng Gemini AI
+            </button>
+          </div>
+        </div>
+
+        <!-- HIỆU ỨNG LOADING SPARKLE -->
+        <div id="planner-loading" class="ai-loading-state" style="display: none;">
+          <div class="sparkle-spinner"></div>
+          <h3 style="color:#0f172a; font-size:16px; margin-bottom:6px;">Gemini AI Đang Phân Rã Mục Tiêu Doanh Thu...</h3>
+          <p style="color:var(--text-muted); font-size:13px;">Đang tính toán hạn mức cho 4 kênh bán lẻ, giỏ hàng AOV và vạch ra lộ trình 4 tuần.</p>
+        </div>
+
+        <!-- KHU VỰC HIỂN THỊ KẾT QUẢ KẾ HOẠCH (Ẩn ban đầu) -->
+        <div id="plan-results-wrapper" class="plan-results-wrapper" style="display: none;">
+          
+          <!-- THANH TIÊU ĐỀ & HUY HIỆU TĂNG TRƯỞNG -->
+          <div class="plan-headline-bar">
+            <div>
+              <span class="plan-badge-ai"><i class="fa-solid fa-sparkles"></i> Kết Quả Mô Hình Hóa Phân Rã Mục Tiêu</span>
+              <h3 id="plan-headline-text" style="color:#0f172a; font-size:22px; margin-top:4px;">Kế Hoạch Doanh Thu: 30.000.000 VNĐ</h3>
+            </div>
+            <div id="plan-growth-pill" class="plan-status-pill">+20.0% TĂNG TRƯỞNG</div>
+          </div>
+
+          <!-- 4 THẺ CHỈ TIÊU KPI ĐỊNH LƯỢNG CỐT LÕI -->
+          <div class="plan-kpis-row">
+            <div class="plan-metric-card">
+              <div class="metric-icon-box cyan"><i class="fa-solid fa-bullseye"></i></div>
+              <div class="metric-details">
+                <span class="metric-title">Doanh Thu Mục Tiêu</span>
+                <strong id="plan-val-revenue" class="metric-val text-cyan">30,000,000 đ</strong>
+                <small id="plan-note-revenue" class="metric-note">Cơ sở: 25,000,000 đ (+20%)</small>
+              </div>
+            </div>
+
+            <div class="plan-metric-card">
+              <div class="metric-icon-box emerald"><i class="fa-solid fa-cart-shopping"></i></div>
+              <div class="metric-details">
+                <span class="metric-title">Số Đơn Hàng Cần Chốt</span>
+                <strong id="plan-val-orders" class="metric-val text-emerald">22 đơn</strong>
+                <small class="metric-note">Tỷ lệ thành công mục tiêu > 95%</small>
+              </div>
+            </div>
+
+            <div class="plan-metric-card">
+              <div class="metric-icon-box purple"><i class="fa-solid fa-receipt"></i></div>
+              <div class="metric-details">
+                <span class="metric-title">Mục Tiêu AOV (Giỏ Hàng)</span>
+                <strong id="plan-val-aov" class="metric-val text-purple">1,417,500 đ</strong>
+                <small class="metric-note">Kỳ vọng tăng +5% qua bán kèm</small>
+              </div>
+            </div>
+
+            <div class="plan-metric-card">
+              <div class="metric-icon-box amber"><i class="fa-solid fa-calendar-day"></i></div>
+              <div class="metric-details">
+                <span class="metric-title">Chỉ Tiêu Hàng Ngày</span>
+                <strong id="plan-val-daily" class="metric-val text-amber">1,000,000 đ</strong>
+                <small class="metric-note">Run-rate trung bình/ngày</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- LƯỚI 4 THẺ PHÂN BỔ HẠN MỨC (QUOTA) KÊNH BÁN LẺ -->
+          <h4 class="section-subtitle"><i class="fa-solid fa-network-wired"></i> Phân Bổ Hạn Mức (Quota) Cho 4 Kênh Bán Lẻ</h4>
+          <div id="plan-channel-quotas-container" class="channel-quotas-grid">
+            <!-- Render động từ JS -->
+          </div>
+
+          <!-- LỘ TRÌNH HÀNH ĐỘNG 4 TUẦN TỪ GEMINI AI -->
+          <h4 class="section-subtitle" style="margin-top:28px;"><i class="fa-solid fa-route"></i> Lộ Trình Hành Động 4 Tuần & Tư Vấn Cán Đích Của Gemini AI</h4>
+          <div id="plan-roadmap-markdown" class="ai-markdown-body roadmap-markdown-card">
+            <!-- Nội dung Markdown từ Gemini AI render tại đây -->
+          </div>
+        </div>
+
+        <!-- LỊCH SỬ CÁC BẢN KẾ HOẠCH ĐÃ LẬP -->
+        <div class="glass-card data-table-card">
+          <h3 style="margin-bottom:16px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-cyan); margin-right:8px;"></i>
+            Lịch Sử Các Kế Hoạch Doanh Thu Đã Lập
+          </h3>
+          <div id="plan-history-list">
+            <!-- Render động từ JS -->
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/planner.js"></script>
+</body>
+</html>
