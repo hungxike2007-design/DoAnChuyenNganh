@@ -19,9 +19,23 @@
   <style>
     .studio-grid {
       display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 22px;
+      grid-template-columns: 340px 1fr 310px;
+      gap: 20px;
       align-items: start;
+    }
+    @media (max-width: 1350px) {
+      .studio-grid {
+        grid-template-columns: 320px 1fr 280px;
+        gap: 16px;
+      }
+    }
+    @media (max-width: 1050px) {
+      .studio-grid {
+        grid-template-columns: 1fr;
+      }
+      .history-column-card {
+        position: static !important;
+      }
     }
     .form-group-custom {
       margin-bottom: 16px;
@@ -50,7 +64,7 @@
       display: flex;
       flex-direction: column;
       padding: 10px 12px;
-      border: 1px solid var(--border-card);
+      border: 1px solid #cbd5e1;
       border-radius: var(--radius-sm);
       background: #f8fafc;
       cursor: pointer;
@@ -59,20 +73,26 @@
     }
     .pill-radio-box b {
       font-size: 12.5px;
-      color: var(--text-primary);
-      margin-bottom: 2px;
+      color: #0f172a;
+      margin-bottom: 3px;
     }
     .pill-radio-box span {
       font-size: 11px;
-      color: var(--text-muted);
+      color: #475569;
+      font-weight: 500;
     }
     .pill-radio-item input:checked + .pill-radio-box {
-      border-color: var(--accent-primary);
-      background: var(--accent-primary-light);
-      box-shadow: 0 0 0 1px var(--accent-primary);
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 1px #2563eb;
     }
     .pill-radio-item input:checked + .pill-radio-box b {
-      color: var(--accent-primary);
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+    .pill-radio-item input:checked + .pill-radio-box span {
+      color: #2563eb;
+      font-weight: 600;
     }
 
     /* Tab switcher for Studio Output */
@@ -280,20 +300,6 @@
         <button class="btn-logout" onclick="logout()" title="Đăng xuất">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
-            <!-- DANH SÁCH LỊCH SỬ KỊCH BẢN ĐÃ TẠO -->
-            <div style="margin-top:22px; padding-top:16px; border-top:1px solid #f1f5f9;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="font-size:13px; font-weight:700; color:var(--text-primary); margin:0;">
-                  <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-primary); margin-right:5px;"></i> Lịch Sử Kịch Bản Đã Lưu
-                </h4>
-                <button type="button" class="btn btn-secondary" style="font-size:11px; padding:3px 8px;" onclick="loadCampaignHistory()" title="Tải lại lịch sử">
-                  <i class="fa-solid fa-arrows-rotate"></i>
-                </button>
-              </div>
-              <div id="marketing-history-list" style="display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto; padding-right:2px;">
-                <p style="color:var(--text-muted); font-size:12px; margin:0; text-align:center; padding:10px 0;">Đang nạp lịch sử...</p>
-              </div>
-            </div>
       </div>
     </aside>
 
@@ -587,13 +593,35 @@
 
           </div>
 
+          <!-- CỘT PHẢI: LỊCH SỬ KỊCH BẢN ĐÃ LƯU (SÁT BÊN TAY PHẢI PHÍA TRÊN) -->
+          <div class="glass-card history-column-card" style="padding: 20px; background:#fff; border:1px solid var(--border-card); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); position:sticky; top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:32px; height:32px; border-radius:6px; background:#eff6ff; display:flex; align-items:center; justify-content:center; color:var(--accent-primary);">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:14px; font-weight:700; color:var(--text-primary); margin:0;">Lịch Sử Kịch Bản</h3>
+                  <span style="font-size:11px; color:var(--text-muted);" id="history-total-count">Đã lưu trữ</span>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary" style="font-size:11px; padding:4px 9px;" onclick="loadCampaignHistory()" title="Làm mới lịch sử">
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </button>
+            </div>
+
+            <div id="marketing-history-list" style="display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 200px); overflow-y:auto; padding-right:2px;">
+              <p style="color:var(--text-muted); font-size:12px; margin:0; text-align:center; padding:15px 0;">Đang nạp lịch sử...</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </main>
   </div>
 
   <div id="toast-container"></div>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/marketing-studio.js"></script>
+  <script src="/static/js/api.js?v=20261103_05"></script>
+  <script src="/static/js/marketing-studio.js?v=20261103_05"></script>
 </body>
 </html>

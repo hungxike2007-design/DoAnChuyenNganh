@@ -310,29 +310,31 @@ function renderCampaignResult(data) {
  */
 async function loadCampaignHistory() {
   const container = document.getElementById('marketing-history-list');
+  const countEl = document.getElementById('history-total-count');
   if (!container) return;
 
   try {
-    const res = await apiRequest('/api/ai/marketing-history?limit=10');
+    const res = await apiRequest('/api/ai/marketing-history?limit=15');
     if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
       campaignHistory = res.data;
+      if (countEl) countEl.textContent = `${campaignHistory.length} kịch bản`;
       container.innerHTML = campaignHistory.map(item => {
         const title = escapeHtml(item.title || 'Chiến dịch');
         const prod = escapeHtml(item.user_prompt || 'Sản phẩm');
         const dateStr = item.created_at ? item.created_at.slice(5, 16) : '';
 
         return `
-          <div onclick="selectHistoryCampaign(${item.id})" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.background='#f0f9ff';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-              <b style="font-size:12px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:210px;" title="${title}">${title}</b>
-              <span style="font-size:10.5px; color:var(--text-muted);">${dateStr}</span>
+          <div onclick="selectHistoryCampaign(${item.id})" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; cursor:pointer; transition:all 0.18s ease; margin-bottom:8px;" onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.background='#eff6ff';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px;">
+              <b style="font-size:12.5px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">${title}</b>
+              <span style="font-size:11px; color:#64748b; flex-shrink:0;">${dateStr}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-secondary);">
-              <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">
-                <i class="fa-solid fa-box" style="font-size:10px; color:var(--accent-primary); margin-right:3px;"></i> ${prod}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#475569; gap:8px;">
+              <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">
+                <i class="fa-solid fa-box" style="font-size:10px; color:var(--accent-primary); margin-right:4px;"></i> ${prod}
               </span>
-              <button onclick="deleteHistoryCampaign(event, ${item.id})" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:2px 4px; font-size:11px;" title="Xóa bản ghi này">
-                <i class="fa-regular fa-trash-can"></i>
+              <button type="button" onclick="deleteHistoryCampaign(event, ${item.id})" style="background:#fee2e2; border:1px solid #fecaca; color:#dc2626; border-radius:4px; cursor:pointer; padding:3px 7px; font-size:11.5px; display:inline-flex; align-items:center; gap:3px; transition:all 0.15s ease;" onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
+                <i class="fa-regular fa-trash-can"></i> Xóa
               </button>
             </div>
           </div>
@@ -402,7 +404,15 @@ function selectHistoryCampaign(historyId) {
  */
 async function deleteHistoryCampaign(event, historyId) {
   if (event) event.stopPropagation();
-  if (!confirm('Bạn có chắc chắn muốn xóa kịch bản này khỏi lịch sử?')) return;
+
+  const confirmed = await showConfirmModal({
+    title: 'Xóa Kịch Bản Marketing',
+    message: 'Bạn có chắc chắn muốn xóa bản ghi kịch bản này khỏi lịch sử không? Dữ liệu đã xóa sẽ không thể phục hồi.',
+    confirmText: 'Xác Nhận Xóa',
+    cancelText: 'Hủy Bỏ',
+    type: 'danger'
+  });
+  if (!confirmed) return;
 
   try {
     const res = await apiRequest(`/api/ai/marketing-history/${historyId}`, { method: 'DELETE' });

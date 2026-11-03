@@ -88,7 +88,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
-      if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện của tài khoản này không?')) return;
+      const confirmed = await showConfirmModal({
+        title: 'Xóa Lịch Sử Trò Chuyện',
+        message: 'Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện của tài khoản này không? Dữ liệu trò chuyện sẽ bị xóa hoàn toàn.',
+        confirmText: 'Xác Nhận Xóa',
+        cancelText: 'Hủy Bỏ',
+        type: 'danger'
+      });
+      if (!confirmed) return;
       chatHistory = [];
       localStorage.removeItem(getStorageKey());
       renderAllHistory([]);

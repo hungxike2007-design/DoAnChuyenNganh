@@ -98,6 +98,118 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
+/**
+ * Hộp thoại xác nhận tùy chỉnh (Custom Confirm Modal) - Thay thế hoàn toàn window.confirm()
+ * @param {Object} options Cấu hình hộp thoại
+ * @returns {Promise<boolean>}
+ */
+function showConfirmModal({
+  title = 'Xác Nhận Hành Động',
+  message = 'Bạn có chắc chắn muốn thực hiện hành động này?',
+  confirmText = 'Xác Nhận',
+  cancelText = 'Hủy Bỏ',
+  type = 'danger',
+  icon = null
+} = {}) {
+  return new Promise((resolve) => {
+    const existing = document.getElementById('custom-confirm-modal-wrapper');
+    if (existing) existing.remove();
+
+    const isDanger = type === 'danger';
+    const iconClass = icon || (isDanger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-question');
+    const iconColor = isDanger ? '#dc2626' : '#2563eb';
+    const iconBg = isDanger ? '#fee2e2' : '#eff6ff';
+    const confirmBtnBg = isDanger ? '#dc2626' : '#2563eb';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'custom-confirm-modal-wrapper';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    `;
+
+    overlay.innerHTML = `
+      <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; width:100%; max-width:420px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1); padding:24px; transform:scale(0.96); transition:transform 0.18s cubic-bezier(0.16,1,0.3,1);">
+        <div style="display:flex; align-items:flex-start; gap:14px; margin-bottom:16px;">
+          <div style="width:42px; height:42px; border-radius:50%; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+            <i class="${iconClass}"></i>
+          </div>
+          <div style="flex:1;">
+            <h3 style="margin:0 0 6px 0; font-size:16px; font-weight:700; color:#0f172a;">${title}</h3>
+            <p style="margin:0; font-size:13px; color:#475569; line-height:1.5;">${message}</p>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" id="custom-modal-cancel-btn" style="padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; cursor:pointer; transition:all 0.15s ease;">
+            ${cancelText}
+          </button>
+          <button type="button" id="custom-modal-confirm-btn" style="padding:8px 18px; border-radius:6px; font-size:13px; font-weight:700; background:${confirmBtnBg}; border:none; color:#ffffff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 2px rgba(0,0,0,0.1); transition:all 0.15s ease;">
+            ${confirmText}
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Hiệu ứng mở mượt mà
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+      const box = overlay.querySelector('div');
+      if (box) box.style.transform = 'scale(1)';
+    });
+
+    const cleanup = () => {
+      overlay.style.opacity = '0';
+      const box = overlay.querySelector('div');
+      if (box) box.style.transform = 'scale(0.96)';
+      setTimeout(() => overlay.remove(), 180);
+    };
+
+    const confirmBtn = overlay.querySelector('#custom-modal-confirm-btn');
+    const cancelBtn = overlay.querySelector('#custom-modal-cancel-btn');
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        cleanup();
+        resolve(true);
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        cleanup();
+        resolve(false);
+      });
+    }
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(false);
+      }
+    });
+
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        window.removeEventListener('keydown', handleKey);
+        cleanup();
+        resolve(false);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+  });
+}
+
 // Định dạng tiền tệ VND
 function formatVND(number) {
   if (isNaN(number) || number === null) return '0 ₫';
