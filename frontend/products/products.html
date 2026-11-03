@@ -7,6 +7,23 @@
   <link rel="stylesheet" href="/frontend/assets/css/main.css">
   <link rel="stylesheet" href="/frontend/dashboard/dashboard.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .custom-table th {
+      color: #475569 !important;
+      background: #f8fafc !important;
+      font-weight: 700 !important;
+    }
+    .custom-table td {
+      color: #0f172a !important;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .custom-table td div {
+      color: #0f172a !important;
+    }
+    .cost-col {
+      color: #334155 !important;
+    }
+  </style>
   <script>
     (function() {
       const token = localStorage.getItem('dacn_token');
@@ -53,6 +70,10 @@
           <a href="/frontend/customers/customer-rfm.html" class="nav-link ">
             <i class="fa-solid fa-users-viewfinder"></i>
             <span>Phân Khúc Khách Hàng</span>
+          </a>
+          <a href="/frontend/financial/pnl-report.html" class="nav-link ">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            <span>Báo Cáo P&L (Tài Chính)</span>
           </a>
         </div>
 
@@ -329,8 +350,8 @@
 
   <div id="toast-container"></div>
 
-  <script src="/frontend/assets/js/api.js"></script>
-  <script src="/frontend/orders/import_helper.js"></script>
-  <script src="/frontend/products/products.js"></script>
+  <script src="/frontend/assets/js/api.js?v=20261103_03"></script>
+  <script src="/frontend/orders/import_helper.js?v=20261103_03"></script>
+  <script src="/frontend/products/products.js?v=20261103_03"></script>
 </body>
 </html>

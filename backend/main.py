@@ -43,6 +43,7 @@ from backend.modules.ai.ai_router import router as ai_router
 from backend.modules.products.product_router import router as product_router
 from backend.modules.ai.planner_router import router as planner_router
 from backend.modules.orders.import_router import router as import_router
+from backend.modules.financial.financial_router import router as financial_router
 
 
 @asynccontextmanager
@@ -80,6 +81,7 @@ app.include_router(ai_router)
 app.include_router(product_router)
 app.include_router(planner_router)
 app.include_router(import_router)
+app.include_router(financial_router)
 
 # Phục vụ thư mục frontend (Cấu trúc phân hệ mới)
 frontend_dir = BASE_DIR / "frontend"
@@ -109,10 +111,29 @@ def health_check():
     }
 
 
+def free_port(port: int):
+    """Tự động giải phóng cổng nếu có tiến trình cũ đang chiếm giữ trên Windows."""
+    try:
+        import subprocess
+        out = subprocess.check_output(f'netstat -ano | findstr :{port}', shell=True, text=True, stderr=subprocess.DEVNULL)
+        current_pid = os.getpid()
+        for line in out.strip().splitlines():
+            parts = line.split()
+            if len(parts) >= 5 and "LISTENING" in parts:
+                pid = int(parts[-1])
+                if pid != current_pid and pid > 0:
+                    subprocess.call(f'taskkill /PID {pid} /F', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    print(f"🧹 [System] Đã tự động giải phóng cổng {port} (tiến trình cũ PID: {pid})")
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "127.0.0.1")
+    free_port(port)
+    reload_flag = os.getenv("RELOAD", "false").lower() == "true"
     print(f"🔥 Khởi chạy máy chủ tại: http://{host}:{port}")
-    uvicorn.run("backend.main:app", host=host, port=port, reload=True)
+    uvicorn.run("backend.main:app", host=host, port=port, reload=reload_flag)
 

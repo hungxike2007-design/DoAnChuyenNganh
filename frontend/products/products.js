@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = getUser();
   const role = (user && user.role ? user.role : 'user').toLowerCase();
 
-  // Nếu là Sales, ẩn quyền thêm/import sản phẩm và ẩn cột chi phí giá vốn (bảo mật tài chính)
-  if (role === 'sales') {
+  // Nếu là Sales hoặc User/Khách Hàng, ẩn quyền thêm/import sản phẩm và ẩn cột chi phí giá vốn (bảo mật tài chính)
+  if (role === 'sales' || role === 'user') {
     const addBtn = document.getElementById('btn-add-product');
     if (addBtn) addBtn.style.display = 'none';
 
@@ -136,22 +136,22 @@ function renderProductsTable(products) {
       // Giao diện Nhân Viên / User: CHỈ THẤY GIÁ BÁN NIÊM YẾT VÀ TỒN KHO (Giá vốn & Biên lãi được bảo mật)
       return `
         <tr>
-          <td style="font-weight:700; color:var(--accent-cyan); font-family:monospace;">
+          <td style="font-weight:700; color:#2563eb !important; font-family:monospace; font-size:13px;">
             ${p.sku}
           </td>
           <td>
-            <div style="font-weight:600; color:#fff;">${p.name}</div>
-            <small style="color:var(--text-muted);">${p.category_name || 'Khác'}</small>
+            <div style="font-weight:700; color:#0f172a !important; font-size:14px; margin-bottom:2px;">${p.name}</div>
+            <small style="color:#64748b !important; font-size:12px; font-weight:500;">${p.category_name || 'Khác'}</small>
           </td>
-          <td style="font-weight:600; color:#fff;">${formatVND(p.selling_price)}</td>
+          <td style="font-weight:700; color:#0f172a !important; font-size:14px;">${formatVND(p.selling_price)}</td>
           <td>
             <span class="badge-tag ${isLowStock ? 'badge-warning' : 'badge-success'}">
               ${p.stock_quantity} tồn kho
             </span>
           </td>
           <td>
-            <a href="/frontend/ai/ai-copilot.html" class="link-highlight" style="font-size:12px;">
-              <i class="fa-solid fa-comments" style="color:var(--accent-cyan); margin-right:4px;"></i> ${role === 'sales' ? 'Tư vấn bán hàng' : 'Hỏi AI sản phẩm'}
+            <a href="/frontend/ai/ai-copilot.html" class="link-highlight" style="font-size:12px; font-weight:600; color:#2563eb !important;">
+              <i class="fa-solid fa-comments" style="color:#2563eb; margin-right:4px;"></i> ${role === 'sales' ? 'Tư vấn bán hàng' : 'Hỏi AI sản phẩm'}
             </a>
           </td>
         </tr>
@@ -162,15 +162,15 @@ function renderProductsTable(products) {
     const margin = p.selling_price > 0 ? (((p.selling_price - p.cost_price) / p.selling_price) * 100).toFixed(1) : 0;
     return `
       <tr>
-        <td style="font-weight:700; color:var(--accent-cyan); font-family:monospace;">
+        <td style="font-weight:700; color:#2563eb !important; font-family:monospace; font-size:13px;">
           ${p.sku}
         </td>
         <td>
-          <div style="font-weight:600; color:#fff;">${p.name}</div>
-          <small style="color:var(--text-muted);">${p.category_name || 'Khác'}</small>
+          <div style="font-weight:700; color:#0f172a !important; font-size:14px; margin-bottom:2px;">${p.name}</div>
+          <small style="color:#64748b !important; font-size:12px; font-weight:500;">${p.category_name || 'Khác'}</small>
         </td>
-        <td class="cost-col">${formatVND(p.cost_price)}</td>
-        <td style="font-weight:600; color:#fff;">${formatVND(p.selling_price)}</td>
+        <td class="cost-col" style="font-weight:600; color:#334155 !important;">${formatVND(p.cost_price)}</td>
+        <td style="font-weight:700; color:#0f172a !important; font-size:14px;">${formatVND(p.selling_price)}</td>
         <td class="cost-col">
           <span class="badge-tag ${margin > 50 ? 'badge-success' : 'badge-tag'}" style="font-weight:700;">
             ${margin}%
@@ -182,7 +182,7 @@ function renderProductsTable(products) {
           </span>
         </td>
         <td>
-          <a href="/frontend/ai/ai-strategy.html" class="link-highlight" style="font-size:12px;">
+          <a href="/frontend/ai/ai-strategy.html" class="link-highlight" style="font-size:12px; font-weight:600; color:#2563eb !important;">
             Chiến lược giá AI <i class="fa-solid fa-sparkles"></i>
           </a>
         </td>

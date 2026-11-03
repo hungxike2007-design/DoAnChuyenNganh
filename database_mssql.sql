@@ -16,6 +16,8 @@ USE RevenueSystemDB;
 GO
 
 -- 2. Xóa các bảng cũ nếu cần thiết lập lại từ đầu (Thứ tự xóa theo khóa ngoại)
+IF OBJECT_ID('financial_expenses', 'U') IS NOT NULL DROP TABLE financial_expenses;
+IF OBJECT_ID('ai_chat_messages', 'U') IS NOT NULL DROP TABLE ai_chat_messages;
 IF OBJECT_ID('ai_strategy_logs', 'U') IS NOT NULL DROP TABLE ai_strategy_logs;
 IF OBJECT_ID('order_items', 'U') IS NOT NULL DROP TABLE order_items;
 IF OBJECT_ID('orders', 'U') IS NOT NULL DROP TABLE orders;
@@ -137,6 +139,23 @@ CREATE TABLE ai_chat_messages (
     sender NVARCHAR(20) NOT NULL,
     message NVARCHAR(MAX) NOT NULL,
     created_at DATETIME2 DEFAULT GETDATE()
+);
+GO
+
+-- 12. Tạo Bảng financial_expenses (Quản lý chi phí vận hành OPEX báo cáo tài chính P&L)
+CREATE TABLE financial_expenses (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    month_year VARCHAR(7) NOT NULL, -- Định dạng 'YYYY-MM', ví dụ '2026-10'
+    channel VARCHAR(50) DEFAULT 'All', -- 'All' hoặc kênh cụ thể
+    rent_expense DECIMAL(18,2) DEFAULT 0, -- Chi phí thuê mặt bằng kho bãi
+    salary_expense DECIMAL(18,2) DEFAULT 0, -- Chi phí lương nhân sự
+    marketing_expense DECIMAL(18,2) DEFAULT 0, -- Chi phí tiếp thị & quảng cáo Ads
+    utilities_expense DECIMAL(18,2) DEFAULT 0, -- Chi phí điện nước, internet, bao bì
+    other_expense DECIMAL(18,2) DEFAULT 0, -- Chi phí vận hành khác
+    note NVARCHAR(500) DEFAULT '',
+    updated_by INT FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
+    updated_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT UQ_Month_Channel UNIQUE(month_year, channel)
 );
 GO
 

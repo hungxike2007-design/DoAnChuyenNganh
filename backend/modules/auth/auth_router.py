@@ -64,12 +64,18 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
 
 def require_roles(*allowed_roles):
     """Kiểm tra quyền hạn người dùng theo danh sách vai trò cho phép."""
+    if len(allowed_roles) == 1 and isinstance(allowed_roles[0], (list, tuple, set)):
+        roles_set = set(allowed_roles[0])
+    else:
+        roles_set = set(allowed_roles)
+
     def role_checker(user: dict = Depends(get_current_user)):
-        user_role = user.get("role", "sales")
-        if user_role not in allowed_roles:
+        user_role = (user.get("role") or "sales").lower()
+        if user_role not in roles_set:
+            roles_str = ", ".join(sorted(roles_set))
             raise HTTPException(
                 status_code=403,
-                detail=f"Quyền truy cập bị từ chối! Chức năng này yêu cầu vai trò: [{', '.join(allowed_roles)}]. Vai trò của bạn: '{user_role}'."
+                detail=f"Quyền truy cập bị từ chối! Chức năng này yêu cầu vai trò: [{roles_str}]. Vai trò của bạn: '{user_role}'."
             )
         return user
     return role_checker
