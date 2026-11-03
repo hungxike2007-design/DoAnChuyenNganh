@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Marketing & TikTok Script Studio | Hệ Thống Phân Tích Doanh Thu AI</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    (function() {
+      const token = localStorage.getItem('dacn_token');
+      const userStr = localStorage.getItem('dacn_user');
+      if (!token || !userStr) {
+        window.location.replace('/static/login.html');
+      }
+    })();
+  </script>
+  <style>
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+    .form-group-custom {
+      margin-bottom: 16px;
+    }
+    .form-label-custom {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .pill-radio-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pill-radio-item {
+      position: relative;
+    }
+    .pill-radio-item input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .pill-radio-box {
+      display: flex;
+      flex-direction: column;
+      padding: 10px 12px;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+    }
+    .pill-radio-box b {
+      font-size: 12.5px;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .pill-radio-box span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .pill-radio-item input:checked + .pill-radio-box {
+      border-color: var(--accent-primary);
+      background: var(--accent-primary-light);
+      box-shadow: 0 0 0 1px var(--accent-primary);
+    }
+    .pill-radio-item input:checked + .pill-radio-box b {
+      color: var(--accent-primary);
+    }
+
+    /* Tab switcher for Studio Output */
+    .studio-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-card);
+      margin-bottom: 20px;
+      padding-bottom: 4px;
+    }
+    .studio-tab-btn {
+      background: none;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .studio-tab-btn:hover {
+      color: var(--text-primary);
+      background: #f1f5f9;
+    }
+    .studio-tab-btn.active {
+      color: var(--accent-primary);
+      background: var(--accent-primary-light);
+      border-bottom: 2px solid var(--accent-primary);
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    /* Timeline Storyboard */
+    .scene-card {
+      background: #ffffff;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      position: relative;
+      border-left: 4px solid var(--accent-primary);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .scene-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .scene-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .scene-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .scene-body-row {
+      display: grid;
+      grid-template-columns: 85px 1fr;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 6px;
+      line-height: 1.45;
+    }
+    .scene-label {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    /* Social Ad Preview Card */
+    .facebook-mockup {
+      background: #ffffff;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      max-width: 600px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .fb-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .fb-body {
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1c1e21;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 1024px) {
+      .studio-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE SYSTEM</h2>
+          <span>Business Portal</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <!-- NHÓM 1: BÁO CÁO & THỐNG KÊ -->
+        <div class="nav-group" id="nav-group-analytics">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-chart-pie"></i> Báo Cáo & Thống Kê
+          </div>
+          <a href="/static/dashboard.html" class="nav-link ">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tổng Quan Doanh Thu</span>
+          </a>
+          <a href="/static/customer-rfm.html" class="nav-link ">
+            <i class="fa-solid fa-users-viewfinder"></i>
+            <span>Phân Khúc Khách Hàng</span>
+          </a>
+        </div>
+        <!-- NHÓM 2: VẬN HÀNH & BÁN HÀNG -->
+        <div class="nav-group" id="nav-group-operations">
+          <div class="nav-section-title" id="title-operations">
+            <i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng
+          </div>
+          <a href="/static/orders.html" class="nav-link ">
+            <i class="fa-solid fa-cart-flatbed"></i>
+            <span>Quản Lý Đơn Hàng</span>
+          </a>
+          <a href="/static/products.html" class="nav-link ">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Kho Hàng & Sản Phẩm</span>
+          </a>
+        </div>
+        <!-- NHÓM 3: TRÍ TUỆ NHÂN TẠO (AI) -->
+        <div class="nav-group" id="nav-group-ai">
+          <div class="nav-section-title" id="title-ai">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)
+          </div>
+          <a href="/static/revenue-planner.html" class="nav-link ">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Lập Kế Hoạch Doanh Thu</span>
+            <span class="badge-tag badge-dss">DSS</span>
+          </a>
+          <a href="/static/ai-strategy.html" class="nav-link ">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Chiến Lược Giá & Combo</span>
+            <span class="badge-tag badge-pro">PRO</span>
+          </a>
+          <a href="/static/marketing-studio.html" class="nav-link active">
+            <i class="fa-solid fa-clapperboard"></i>
+            <span>AI Marketing Studio</span>
+            <span class="badge-tag badge-admin" style="background:#818cf8; color:#fff;">STUDIO</span>
+          </a>
+          <a href="/static/ai-copilot.html" class="nav-link ">
+            <i class="fa-solid fa-comments"></i>
+            <span>Trợ Lý AI Doanh Nghiệp</span>
+            <span class="badge-tag badge-chat">COPILOT</span>
+          </a>
+        </div>
+        <!-- NHÓM 4: CẤU HÌNH HỆ THỐNG (CHỈ ADMIN) -->
+        <div class="nav-group" id="nav-group-admin" style="display:none;">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-gear"></i> Cấu Hình Hệ Thống
+          </div>
+          <a href="/static/users.html" class="nav-link ">
+            <i class="fa-solid fa-users-gear"></i>
+            <span>Quản Trị Người Dùng</span>
+            <span class="badge-tag badge-admin">ADMIN</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="sidebar-user-avatar">U</div>
+          <div class="user-meta">
+            <span class="name" id="sidebar-user-name">Đang tải...</span>
+            <span class="role" id="sidebar-user-role">...</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+            <!-- DANH SÁCH LỊCH SỬ KỊCH BẢN ĐÃ TẠO -->
+            <div style="margin-top:22px; padding-top:16px; border-top:1px solid #f1f5f9;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="font-size:13px; font-weight:700; color:var(--text-primary); margin:0;">
+                  <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-primary); margin-right:5px;"></i> Lịch Sử Kịch Bản Đã Lưu
+                </h4>
+                <button type="button" class="btn btn-secondary" style="font-size:11px; padding:3px 8px;" onclick="loadCampaignHistory()" title="Tải lại lịch sử">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+              </div>
+              <div id="marketing-history-list" style="display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto; padding-right:2px;">
+                <p style="color:var(--text-muted); font-size:12px; margin:0; text-align:center; padding:10px 0;">Đang nạp lịch sử...</p>
+              </div>
+            </div>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="main-wrapper">
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>AI Marketing & TikTok Script Studio 🎬</h1>
+          <p>Tự động xuất bản kịch bản Video TikTok 30s, bài viết quảng cáo Facebook Ads AIDA và bộ từ khóa SEO từ dữ liệu sản phẩm</p>
+        </div>
+        <div class="nav-actions">
+          <a href="/frontend/dashboard/dashboard.html" class="btn btn-secondary">
+            <i class="fa-solid fa-chart-line" style="color:var(--accent-primary); margin-right:6px;"></i> Xem Top Sản Phẩm Doanh Thu
+          </a>
+        </div>
+      </header>
+
+      <div class="content-body">
+        <div class="studio-grid">
+          
+          <!-- CỘT TRÁI: BỘ ĐIỀU KHIỂN & CHỌN SẢN PHẨM -->
+          <div class="glass-card" style="padding: 22px; background:#fff; border:1px solid var(--border-card); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
+              <div style="width:32px; height:32px; border-radius:6px; background:#eff6ff; display:flex; align-items:center; justify-content:center; color:var(--accent-primary);">
+                <i class="fa-solid fa-sliders"></i>
+              </div>
+              <div>
+                <h3 style="font-size:15px; font-weight:700; color:var(--text-primary); margin:0;">Thiết Lập Chiến Dịch</h3>
+                <span style="font-size:11.5px; color:var(--text-muted);">Cung cấp thông tin sản phẩm cho Gemini</span>
+              </div>
+            </div>
+
+            <!-- CHỌN SẢN PHẨM TRONG KHO HOẶC TỰ NHẬP -->
+            <div class="form-group-custom">
+              <label class="form-label-custom">
+                <i class="fa-solid fa-box-open" style="color:var(--accent-primary); margin-right:4px;"></i>
+                Chọn sản phẩm từ hệ thống:
+              </label>
+              <select id="select-product" class="input-field" style="height:38px; font-size:13px;" onchange="onProductSelect(this.value)">
+                <option value="">-- Đang tải sản phẩm trong kho... --</option>
+              </select>
+            </div>
+
+            <div class="form-group-custom">
+              <label class="form-label-custom">Tên sản phẩm (*):</label>
+              <input type="text" id="input-product-name" class="input-field" placeholder="Ví dụ: Giày chạy bộ Air Cushion Pro" required>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;" class="form-group-custom">
+              <div>
+                <label class="form-label-custom">Danh mục:</label>
+                <input type="text" id="input-product-category" class="input-field" placeholder="Thời trang, Công nghệ...">
+              </div>
+              <div>
+                <label class="form-label-custom">Giá niêm yết (VNĐ):</label>
+                <input type="number" id="input-product-price" class="input-field" placeholder="Ví dụ: 750000">
+              </div>
+            </div>
+
+            <div class="form-group-custom">
+              <label class="form-label-custom">Khách hàng mục tiêu (Target Audience):</label>
+              <input type="text" id="input-target-audience" class="input-field" placeholder="Ví dụ: Người tập thể thao, dân văn phòng trẻ 20-35 tuổi...">
+            </div>
+
+            <!-- MỤC TIÊU CHIẾN DỊCH -->
+            <div class="form-group-custom">
+              <label class="form-label-custom">Mục tiêu chiến dịch:</label>
+              <div class="pill-radio-group">
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_goal" value="sales_boost" checked>
+                  <div class="pill-radio-box">
+                    <b>🚀 Tăng Tốc Doanh Số</b>
+                    <span>Kích thích mua ngay</span>
+                  </div>
+                </label>
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_goal" value="clearance">
+                  <div class="pill-radio-box">
+                    <b>⚡ Xả Hàng Tồn Kho</b>
+                    <span>Giảm giá sâu có hạn</span>
+                  </div>
+                </label>
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_goal" value="brand_launch">
+                  <div class="pill-radio-box">
+                    <b>✨ Ra Mắt Mẫu Mới</b>
+                    <span>Gây tò mò & uy tín</span>
+                  </div>
+                </label>
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_goal" value="retargeting">
+                  <div class="pill-radio-box">
+                    <b>🔄 Kéo Khách Cũ</b>
+                    <span>Tri ân & Voucher</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- TÔNG GIỌNG TRUYỀN THÔNG -->
+            <div class="form-group-custom">
+              <label class="form-label-custom">Tông giọng video & bài viết:</label>
+              <div class="pill-radio-group">
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_tone" value="trendy" checked>
+                  <div class="pill-radio-box">
+                    <b>🔥 TikTok Gen Z</b>
+                    <span>Hài hước, bắt trend</span>
+                  </div>
+                </label>
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_tone" value="expert">
+                  <div class="pill-radio-box">
+                    <b>👔 Chuyên Gia</b>
+                    <span>Khoa học, phân tích</span>
+                  </div>
+                </label>
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_tone" value="fomo">
+                  <div class="pill-radio-box">
+                    <b>⏳ Giục Giã FOMO</b>
+                    <span>Sợ lỡ cơ hội, sắp hết</span>
+                  </div>
+                </label>
+                <label class="pill-radio-item">
+                  <input type="radio" name="campaign_tone" value="storytelling">
+                  <div class="pill-radio-box">
+                    <b>❤️ Kể Chuyện Cảm Xúc</b>
+                    <span>Chạm vào nỗi đau</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- NÚT GENERATE CHÍNH -->
+            <button id="btn-generate-campaign" class="btn btn-primary" style="width:100%; height:44px; font-size:14px; font-weight:700; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="generateCampaign()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Xuất Bản Kịch Bản & Content (Gemini)
+            </button>
+          </div>
+
+          <!-- CỘT PHẢI: STUDIO SẢN XUẤT NỘI DUNG (KẾT QUẢ AI) -->
+          <div class="glass-card" style="padding: 24px; background:#fff; border:1px solid var(--border-card); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); min-height:600px;">
+            
+            <!-- TRẠNG THÁI CHỜ BAN ĐẦU -->
+            <div id="studio-empty-state" style="text-align:center; padding: 70px 20px;">
+              <div style="width:72px; height:72px; border-radius:50%; background:#eff6ff; color:var(--accent-primary); display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:16px;">
+                <i class="fa-solid fa-film"></i>
+              </div>
+              <h3 style="font-size:18px; font-weight:800; color:var(--text-primary); margin-bottom:8px;">
+                Studio Sáng Tạo Video & Quảng Cáo Tự Động
+              </h3>
+              <p style="font-size:13.5px; color:var(--text-muted); max-width:480px; margin:0 auto 20px auto; line-height:1.5;">
+                Chọn một sản phẩm từ menu bên trái và bấm <b>Xuất Bản</b>. Gemini AI 3.5 Flash sẽ viết kịch bản phân cảnh TikTok 30s chi tiết từng giây, bài post Facebook Ads chuẩn AIDA và bộ thẻ SEO sẵn sàng dùng ngay.
+              </p>
+              <div style="display:inline-flex; gap:16px; font-size:12.5px; color:var(--text-secondary);">
+                <span><i class="fa-solid fa-check" style="color:var(--accent-emerald);"></i> Kịch bản 4 phân cảnh</span>
+                <span><i class="fa-solid fa-check" style="color:var(--accent-emerald);"></i> Lời thoại Hook 3 giây</span>
+                <span><i class="fa-solid fa-check" style="color:var(--accent-emerald);"></i> Tối ưu chuyển đổi</span>
+              </div>
+            </div>
+
+            <!-- TRẠNG THÁI LOADING -->
+            <div id="studio-loading-state" style="display:none; text-align:center; padding:80px 20px;">
+              <div class="loading-spinner" style="margin: 0 auto 20px auto; width:44px; height:44px; border-width:4px;"></div>
+              <h4 style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">
+                Gemini AI Đang Sáng Tạo Kịch Bản Video...
+              </h4>
+              <p style="font-size:13px; color:var(--text-muted);">
+                Đang nghiên cứu góc quay, viết câu Hook 3 giây đầu, phân cảnh Visual và tối ưu bài viết Ads...
+              </p>
+            </div>
+
+            <!-- KHUNG KẾT QUẢ KHI CÓ DATA -->
+            <div id="studio-result-container" style="display:none;">
+              
+              <!-- THANH HEADER KẾT QUẢ -->
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid #f1f5f9; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <span class="badge-tag badge-dss" style="font-size:11px; margin-bottom:6px; display:inline-block;" id="result-badge-campaign">
+                    Chiến dịch Marketing Đa Kênh
+                  </span>
+                  <h2 id="result-campaign-title" style="font-size:18px; font-weight:800; color:var(--text-primary); margin:0;">
+                    Tên Chiến Dịch
+                  </h2>
+                  <div id="result-selling-points" style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                    <!-- Render badges USP -->
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <button class="btn btn-secondary" style="font-size:12.5px; padding:6px 14px; font-weight:600;" onclick="copyCurrentTabContent()" title="Sao chép nội dung">
+                    <i class="fa-regular fa-copy"></i> Sao Chép
+                  </button>
+                  <button class="btn btn-secondary" style="font-size:12.5px; padding:6px 14px; font-weight:600;" onclick="exportScriptText()" title="Tải file text">
+                    <i class="fa-solid fa-download"></i> Tải File (.txt)
+                  </button>
+                </div>
+              </div>
+
+              <!-- THANH CHUYỂN TABS -->
+              <div class="studio-tabs">
+                <button class="studio-tab-btn active" onclick="switchStudioTab('tiktok')" id="tab-btn-tiktok">
+                  <i class="fa-brands fa-tiktok"></i> Kịch Bản TikTok Shop 30s
+                </button>
+                <button class="studio-tab-btn" onclick="switchStudioTab('facebook')" id="tab-btn-facebook">
+                  <i class="fa-brands fa-facebook"></i> Bài Viết Facebook Ads AIDA
+                </button>
+                <button class="studio-tab-btn" onclick="switchStudioTab('seo')" id="tab-btn-seo">
+                  <i class="fa-solid fa-magnifying-glass"></i> SEO & Hashtags Thịnh Hành
+                </button>
+              </div>
+
+              <!-- NỘI DUNG TAB 1: KỊCH BẢN TIKTOK 30S -->
+              <div id="tab-content-tiktok">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px; font-size:12.5px;">
+                  <div>
+                    <i class="fa-solid fa-music" style="color:var(--accent-primary); margin-right:6px;"></i>
+                    Nhạc nền đề xuất: <b id="script-music-vibe" style="color:var(--text-primary);">...</b>
+                  </div>
+                  <div>
+                    <i class="fa-solid fa-bolt" style="color:var(--accent-amber); margin-right:6px;"></i>
+                    Hook: <span id="script-hook-type" style="font-weight:600;">...</span>
+                  </div>
+                </div>
+
+                <div id="timeline-scenes-list">
+                  <!-- Render 4 cảnh Storyboard từ JS -->
+                </div>
+              </div>
+
+              <!-- NỘI DUNG TAB 2: BÀI VIẾT FACEBOOK ADS AIDA -->
+              <div id="tab-content-facebook" style="display:none;">
+                <div class="facebook-mockup">
+                  <div class="fb-header">
+                    <div style="width:40px; height:40px; border-radius:50%; background:var(--accent-primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px;">
+                      RS
+                    </div>
+                    <div>
+                      <div style="font-weight:700; font-size:14px; color:#050505;">Cửa Hàng / Điểm Bán Của Bạn</div>
+                      <div style="font-size:11.5px; color:#65676b; display:flex; align-items:center; gap:4px;">
+                        <span>Vừa xong</span> • <i class="fa-solid fa-earth-americas"></i> <span>Được tài trợ</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fb-body" id="fb-post-content">
+                    <!-- Render nội dung bài viết từ JS -->
+                  </div>
+                  <div style="background:#f0f2f5; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e4e6eb;">
+                    <span id="fb-post-cta" style="font-weight:700; font-size:13px; color:#1877f2;">MUA NGAY HÔM NAY</span>
+                    <button class="btn btn-primary" style="padding:6px 14px; font-size:12.5px;" onclick="copyFacebookPost()">Sao Chép Bài Đăng</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- NỘI DUNG TAB 3: BỘ SEO & HASHTAGS -->
+              <div id="tab-content-seo" style="display:none;">
+                <div style="margin-bottom:20px;">
+                  <h4 style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:8px;">
+                    <i class="fa-solid fa-tag" style="color:var(--accent-primary); margin-right:6px;"></i>
+                    Tiêu đề sản phẩm chuẩn SEO Shopee / TikTok Shop:
+                  </h4>
+                  <div style="display:flex; gap:10px;">
+                    <input type="text" id="seo-shopee-title" class="input-field" readonly style="font-weight:600; background:#f8fafc;">
+                    <button class="btn btn-secondary" onclick="copyShopeeTitle()" style="white-space:nowrap;">Sao Chép</button>
+                  </div>
+                  <span style="font-size:11.5px; color:var(--text-muted); margin-top:4px; display:block;" id="seo-title-count">Độ dài: ... ký tự</span>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                  <h4 style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:8px;">
+                    <i class="fa-solid fa-hashtag" style="color:var(--accent-emerald); margin-right:6px;"></i>
+                    Bộ Hashtags thịnh hành (Bấm vào để copy):
+                  </h4>
+                  <div id="seo-hashtags-container" style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <!-- Render hashtags từ JS -->
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:8px;">
+                    <i class="fa-solid fa-key" style="color:var(--accent-amber); margin-right:6px;"></i>
+                    Từ khóa tìm kiếm tự nhiên hàng đầu:
+                  </h4>
+                  <div id="seo-keywords-container" style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <!-- Render keywords từ JS -->
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/marketing-studio.js"></script>
+</body>
+</html>

@@ -235,6 +235,11 @@ function renderTimelineChart(data) {
 
   if (timelineChart) timelineChart.destroy();
 
+  const chartCanvas = ctx.getContext('2d');
+  const gradient = chartCanvas.createLinearGradient(0, 0, 0, 280);
+  gradient.addColorStop(0, 'rgba(37, 99, 235, 0.18)');
+  gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
+
   timelineChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -243,38 +248,47 @@ function renderTimelineChart(data) {
         label: 'Doanh thu (VNĐ)',
         data: revenues,
         borderColor: '#2563eb',
-        backgroundColor: 'rgba(37, 99, 235, 0.08)',
-        borderWidth: 3,
+        backgroundColor: gradient,
+        borderWidth: 2.5,
         fill: true,
-        tension: 0.38,
+        tension: 0.35,
         pointBackgroundColor: '#2563eb',
-        pointBorderColor: '#fff',
-        pointRadius: 4,
-        pointHoverRadius: 7
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 3.5,
+        pointHoverRadius: 6
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: '#0f172a',
-          titleFont: { size: 13, weight: 'bold' },
-          bodyFont: { size: 12 },
-          padding: 10,
+          titleFont: { size: 13, weight: 'bold', family: "'Plus Jakarta Sans', sans-serif" },
+          bodyFont: { size: 12, family: "'JetBrains Mono', monospace" },
+          padding: 12,
+          cornerRadius: 8,
           callbacks: {
             label: (ctx) => `Doanh thu: ${formatVND(ctx.parsed.y)}`
           }
         }
       },
       scales: {
-        x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 11 } } },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } }
+        },
         y: {
-          grid: { color: '#f1f5f9' },
+          grid: { color: '#f1f5f9', borderDash: [4, 4] },
           ticks: {
             color: '#64748b',
-            font: { size: 11 },
+            font: { size: 11, family: "'JetBrains Mono', monospace" },
             callback: (val) => val >= 1000000 ? `${(val / 1000000).toFixed(1)} tr` : val
           }
         }
@@ -300,7 +314,8 @@ function renderChannelChart(data) {
         data: revenues,
         backgroundColor: ['#2563eb', '#06b6d4', '#10b981', '#f59e0b', '#dc2626'],
         borderWidth: 2,
-        borderColor: '#ffffff'
+        borderColor: '#ffffff',
+        hoverOffset: 6
       }]
     },
     options: {
@@ -309,16 +324,24 @@ function renderChannelChart(data) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { color: '#475569', font: { size: 12 }, padding: 14 }
+          labels: {
+            color: '#475569',
+            font: { size: 12, family: "'Plus Jakarta Sans', sans-serif" },
+            padding: 14,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
         },
         tooltip: {
           backgroundColor: '#0f172a',
+          cornerRadius: 8,
+          padding: 10,
           callbacks: {
             label: (ctx) => `${ctx.label}: ${formatVND(ctx.parsed)}`
           }
         }
       },
-      cutout: '68%'
+      cutout: '72%'
     }
   });
 }

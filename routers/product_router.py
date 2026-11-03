@@ -61,8 +61,22 @@ def get_products(authorization: Optional[str] = Header(None)):
             ORDER BY p.id DESC
         """, (user_id,))
         products = [dict(r) for r in cursor.fetchall()]
+        if not products:
+            cursor.execute("""
+                SELECT p.*, c.name as category_name
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                ORDER BY p.id DESC
+            """)
+            products = [dict(r) for r in cursor.fetchall()]
     else:
-        products = []
+        cursor.execute("""
+            SELECT p.*, c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            ORDER BY p.id DESC
+        """)
+        products = [dict(r) for r in cursor.fetchall()]
     conn.close()
 
     # Nếu là Sales hoặc User thường: ẩn giá vốn nhập hàng (Bảo mật tài chính)

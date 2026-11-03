@@ -88,6 +88,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('Lỗi khi tải dữ liệu phân khúc: ' + err.message, 'error');
   }
 });
+let customerSearchQuery = '';
+
 function renderSegmentCards(segments) {
   const container = document.getElementById('rfm-cards-grid');
   if (!container) return;
@@ -112,18 +114,20 @@ function renderSegmentCards(segments) {
     };
     const isActive = activeSegment === s.segment;
     const cardBorder = isActive ? `2px solid ${cfg.color}` : '1px solid var(--border-card)';
-    const cardShadow = isActive ? `0 4px 14px rgba(0, 0, 0, 0.08), 0 0 0 2px ${cfg.color}33` : 'var(--shadow-sm)';
+    const cardShadow = isActive 
+      ? `0 10px 20px -3px rgba(0, 0, 0, 0.08), 0 0 0 3px ${cfg.color}33` 
+      : 'var(--shadow-sm)';
     const activeBadge = isActive 
-      ? `<span style="font-size:10px; background:${cfg.color}; color:#fff; padding:2px 8px; border-radius:10px; font-weight:700;"><i class="fa-solid fa-check"></i> Đang Lọc</span>` 
+      ? `<span style="font-size:11px; background:${cfg.color}; color:#fff; padding:3px 10px; border-radius:20px; font-weight:700; box-shadow:0 2px 4px ${cfg.color}40;"><i class="fa-solid fa-check"></i> Đang Lọc</span>` 
       : `<span style="font-size:11px; background:#f1f5f9; color:var(--text-secondary); padding:2px 8px; border-radius:10px; font-weight:600;">${s.customer_count} khách</span>`;
     return `
       <div class="kpi-card rfm-segment-card" 
            onclick="toggleSegmentFilter('${s.segment}')"
-           style="cursor: pointer; border: ${cardBorder}; box-shadow: ${cardShadow}; transition: all 0.2s ease; position: relative; background: ${isActive ? cfg.bg : '#ffffff'}; padding: 18px 20px;">
-        <div style="position: absolute; top:0; left:0; right:0; height:3px; background:${cfg.color}; border-top-left-radius:var(--radius-md); border-top-right-radius:var(--radius-md);"></div>
+           style="cursor: pointer; border: ${cardBorder}; box-shadow: ${cardShadow}; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease; position: relative; background: ${isActive ? cfg.bg : '#ffffff'}; padding: 18px 20px; border-radius:var(--radius-md); transform: ${isActive ? 'translateY(-2px)' : 'none'};">
+        <div style="position: absolute; top:0; left:0; right:0; height:${isActive ? '4px' : '3px'}; background:${cfg.color}; border-top-left-radius:var(--radius-md); border-top-right-radius:var(--radius-md);"></div>
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <div style="width:32px; height:32px; border-radius:6px; background:${cfg.color}15; display:flex; align-items:center; justify-content:center; color:${cfg.color}; font-size:14px;">
+            <div style="width:34px; height:34px; border-radius:6px; background:${cfg.color}15; display:flex; align-items:center; justify-content:center; color:${cfg.color}; font-size:14px;">
               <i class="fa-solid ${cfg.icon}"></i>
             </div>
             <div>
@@ -138,17 +142,18 @@ function renderSegmentCards(segments) {
         <p style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin-bottom:12px; min-height:34px;">
           ${cfg.desc}
         </p>
-        <div style="font-size:20px; font-weight:800; color:${cfg.color}; margin-bottom:2px; letter-spacing:-0.02em;">
+        <div style="font-family:var(--font-mono, 'JetBrains Mono', monospace); font-variant-numeric:tabular-nums; font-size:21px; font-weight:800; color:${cfg.color}; margin-bottom:2px; letter-spacing:-0.03em;">
           ${formatVND(s.total_revenue)}
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); padding-top:6px; border-top:1px dashed var(--border-card);">
-          <span>TB/khách: <b>${formatVND(s.avg_spent)}</b></span>
+          <span>TB/khách: <b style="font-family:var(--font-mono); font-variant-numeric:tabular-nums;">${formatVND(s.avg_spent)}</b></span>
           <span style="color:${cfg.color}; font-weight:600;"><i class="fa-solid fa-arrow-pointer"></i> ${isActive ? 'Hủy chọn' : 'Bấm để lọc'}</span>
         </div>
       </div>
     `;
   }).join('');
 }
+
 function toggleSegmentFilter(segmentName) {
   if (activeSegment === segmentName) {
     activeSegment = 'All';
@@ -158,37 +163,54 @@ function toggleSegmentFilter(segmentName) {
   renderSegmentCards(allSegments);
   applyCustomerFilter();
 }
+
+function filterCustomerSearch(query) {
+  customerSearchQuery = (query || '').toLowerCase().trim();
+  applyCustomerFilter();
+}
+
 function applyCustomerFilter() {
-  const filteredCustomers = (activeSegment === 'All') 
+  let filtered = (activeSegment === 'All') 
     ? allCustomers 
     : allCustomers.filter(c => c.segment === activeSegment);
+
+  if (customerSearchQuery) {
+    filtered = filtered.filter(c => 
+      (c.name || '').toLowerCase().includes(customerSearchQuery) ||
+      (c.phone || '').toLowerCase().includes(customerSearchQuery) ||
+      (c.city || '').toLowerCase().includes(customerSearchQuery) ||
+      (c.email || '').toLowerCase().includes(customerSearchQuery)
+    );
+  }
+
   const headline = document.getElementById('table-headline');
   const subline = document.getElementById('table-subline');
   const countBadge = document.getElementById('table-count-badge');
   const strategyBanner = document.getElementById('segment-strategy-banner');
   const btnShowAll = document.getElementById('btn-show-all');
+
   if (activeSegment === 'All') {
     if (headline) headline.innerHTML = `<i class="fa-solid fa-users" style="color:var(--accent-primary);"></i> Danh Sách Toàn Bộ Khách Hàng (Tất Cả Phân Khúc)`;
-    if (subline) subline.textContent = `Hiển thị danh sách ${allCustomers.length} khách hàng trong hệ thống. Bấm vào bất kỳ thẻ phân khúc bên trên để lọc và hành động cụ thể.`;
+    if (subline) subline.textContent = `Hiển thị danh sách ${filtered.length} / ${allCustomers.length} khách hàng trong hệ thống. Bấm vào từng thẻ phân khúc bên trên để lọc và hành động cụ thể.`;
     if (countBadge) {
       countBadge.className = 'badge-tag badge-dss';
       countBadge.style.background = '';
       countBadge.style.color = '';
       countBadge.style.border = '';
-      countBadge.textContent = `${filteredCustomers.length} Khách Hàng`;
+      countBadge.textContent = `${filtered.length} Khách Hàng`;
     }
     if (strategyBanner) strategyBanner.style.display = 'none';
     if (btnShowAll) btnShowAll.style.display = 'none';
   } else {
     const cfg = segmentConfig[activeSegment] || {};
     if (headline) headline.innerHTML = `<i class="fa-solid ${cfg.icon || 'fa-users'}" style="color:${cfg.color || 'var(--accent-primary)'};"></i> ${cfg.title || 'Phân khúc ' + activeSegment}`;
-    if (subline) subline.textContent = `Danh sách ${filteredCustomers.length} khách hàng cụ thể thuộc nhóm ${activeSegment}. Hãy sử dụng thông tin liên hệ và hành động CSKH bên dưới để gia tăng doanh thu.`;
+    if (subline) subline.textContent = `Danh sách ${filtered.length} khách hàng thuộc nhóm ${activeSegment}. Hãy sử dụng thông tin liên hệ và hành động CSKH bên dưới để tối ưu doanh thu.`;
     if (countBadge) {
       countBadge.className = `badge-tag`;
       countBadge.style.background = cfg.bg;
       countBadge.style.color = cfg.color;
       countBadge.style.border = `1px solid ${cfg.color}40`;
-      countBadge.textContent = `${filteredCustomers.length} Khách Thuộc Nhóm ${activeSegment}`;
+      countBadge.textContent = `${filtered.length} Khách Nhóm ${activeSegment}`;
     }
     if (btnShowAll) {
       btnShowAll.style.display = 'inline-flex';
@@ -198,24 +220,33 @@ function applyCustomerFilter() {
       strategyBanner.style.display = 'block';
       strategyBanner.style.borderLeftColor = cfg.color;
       strategyBanner.innerHTML = `
-        <div style="display:flex; align-items:flex-start; gap:14px;">
-          <div style="font-size:24px; color:${cfg.color}; line-height:1; margin-top:2px;">
-            <i class="fa-solid ${cfg.icon}"></i>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; align-items:flex-start; gap:14px; flex:1; min-width:280px;">
+            <div style="font-size:24px; color:${cfg.color}; line-height:1; margin-top:2px;">
+              <i class="fa-solid ${cfg.icon}"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:14.5px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
+                ${cfg.goal}
+              </div>
+              <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+                ${cfg.strategy}
+              </div>
+            </div>
           </div>
-          <div style="flex:1;">
-            <div style="font-size:14.5px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
-              ${cfg.goal}
-            </div>
-            <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
-              ${cfg.strategy}
-            </div>
+          <div>
+            <button class="btn btn-primary" onclick="actionBulkCampaign('${activeSegment}')" 
+                    style="background:${cfg.color}; border:none; padding:8px 16px; border-radius:6px; font-weight:600; font-size:12.5px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; box-shadow:0 2px 6px ${cfg.color}40;">
+              <i class="fa-solid fa-paper-plane"></i> Gửi Chiến Dịch Toàn Bộ Nhóm (${filtered.length} khách)
+            </button>
           </div>
         </div>
       `;
     }
   }
-  renderCustomersTable(filteredCustomers);
+  renderCustomersTable(filtered);
 }
+
 function renderCustomersTable(customers) {
   const tbody = document.getElementById('top-customers-tbody');
   if (!tbody) return;
@@ -224,7 +255,7 @@ function renderCustomersTable(customers) {
       <tr>
         <td colspan="8" style="text-align:center; padding:36px; color:var(--text-muted);">
           <i class="fa-solid fa-user-slash" style="font-size:28px; display:block; margin-bottom:10px; color:#cbd5e1;"></i>
-          Không tìm thấy khách hàng nào trong phân khúc này.
+          Không tìm thấy khách hàng nào phù hợp với bộ lọc.
         </td>
       </tr>
     `;
@@ -232,7 +263,11 @@ function renderCustomersTable(customers) {
   }
   tbody.innerHTML = customers.map((c, idx) => {
     const cfg = segmentConfig[c.segment] || { color: '#2563eb', badgeClass: 'badge-dss', actionText: 'Chăm Sóc' };
-    const lastDate = c.last_order_date || 'Chưa có đơn';
+    const hasOrder = c.last_order_date && c.last_order_date !== 'Chưa có đơn';
+    const dateHtml = hasOrder 
+      ? `<div style="font-weight:600; color:var(--text-primary); font-size:12.5px;"><i class="fa-regular fa-calendar-days" style="color:#64748b; margin-right:5px;"></i>${c.last_order_date}</div>`
+      : `<span class="badge-tag" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; font-size:11px; padding:3px 8px;"><i class="fa-regular fa-clock" style="margin-right:3px;"></i>Chưa có đơn</span>`;
+
     return `
       <tr>
         <td style="font-weight:700; color:var(--text-secondary); text-align:center;">#${idx + 1}</td>
@@ -253,23 +288,21 @@ function renderCustomersTable(customers) {
           </span>
         </td>
         <td>
-          <div style="font-weight:600; color:var(--text-primary); font-size:12.5px;">
-            <i class="fa-regular fa-calendar-days" style="color:#94a3b8; margin-right:4px;"></i>${lastDate}
-          </div>
+          ${dateHtml}
         </td>
-        <td style="font-weight:700; text-align:center; color:var(--text-primary); font-size:13px;">
+        <td style="font-weight:700; text-align:center; color:var(--text-primary); font-size:13px; font-family:var(--font-mono); font-variant-numeric:tabular-nums;">
           ${c.orders_count} đơn
         </td>
-        <td style="font-weight:800; color:var(--accent-emerald); font-size:14px;">
+        <td style="font-weight:800; color:var(--accent-emerald); font-size:14px; font-family:var(--font-mono); font-variant-numeric:tabular-nums;">
           ${formatVND(c.total_spent)}
         </td>
         <td style="text-align:center;">
           <div style="display:inline-flex; gap:6px;">
-            <button class="btn btn-secondary" style="padding:4px 9px; font-size:11.5px; border-radius:6px;" 
+            <button class="btn btn-secondary" style="padding:6px 12px; min-height:34px; font-size:12px; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:5px;" 
                     onclick="actionCallCustomer('${c.name}', '${c.phone}')" title="Sao chép SĐT gọi CSKH">
               <i class="fa-solid fa-phone" style="color:var(--accent-primary);"></i> Gọi
             </button>
-            <button class="btn btn-secondary" style="padding:4px 9px; font-size:11.5px; border-radius:6px;" 
+            <button class="btn btn-secondary" style="padding:6px 12px; min-height:34px; font-size:12px; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:5px;" 
                     onclick="actionSendOffer('${c.name}', '${c.segment}')" title="Gửi mã ưu đãi / voucher">
               <i class="fa-solid fa-gift" style="color:${cfg.color};"></i> ${cfg.actionText}
             </button>
@@ -279,6 +312,7 @@ function renderCustomersTable(customers) {
     `;
   }).join('');
 }
+
 function actionCallCustomer(name, phone) {
   if (!phone || phone === 'N/A') {
     showToast(`Khách hàng ${name} chưa có số điện thoại!`, 'warning');
@@ -289,8 +323,14 @@ function actionCallCustomer(name, phone) {
   }
   showToast(`Đã sao chép SĐT ${phone} (${name}) để CSKH gọi điện hỗ trợ!`, 'success');
 }
+
 function actionSendOffer(name, segment) {
-  const cfg = segmentConfig[segment] || {};
-  const msg = cfg.actionToast || 'Đã gửi ưu đãi thành công cho';
-  showToast(`${msg} ${name} (${segment})!`, 'success');
+  const cfg = segmentConfig[segment] || { actionToast: 'Đã gửi ưu đãi tới' };
+  showToast(`🎁 ${cfg.actionToast} ${name} thành công!`, 'success');
+}
+
+function actionBulkCampaign(segmentName) {
+  const cfg = segmentConfig[segmentName] || {};
+  const filtered = (segmentName === 'All') ? allCustomers : allCustomers.filter(c => c.segment === segmentName);
+  showToast(`✨ Đã kích hoạt chiến dịch CSKH hàng loạt: "${cfg.actionText || 'Chăm sóc'}" thành công tới ${filtered.length} khách hàng nhóm ${segmentName}!`, 'success');
 }

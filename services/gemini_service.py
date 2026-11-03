@@ -353,3 +353,166 @@ Người dùng hỏi: "{user_query}"
         conn.close()
         return rows
 
+    @staticmethod
+    def generate_marketing_campaign(product_data: dict, target_audience: str = None, campaign_goal: str = "sales_boost", tone: str = "trendy") -> dict:
+        product_name = product_data.get("name", "Sản phẩm")
+        category = product_data.get("category", "Bán lẻ")
+        price = product_data.get("price", 0)
+        stock = product_data.get("stock_quantity", 0)
+        desc = product_data.get("description", "")
+        
+        goal_labels = {
+            "sales_boost": "Tăng tốc doanh số bán hàng, kích thích khách chốt đơn ngay lập tức",
+            "clearance": "Xả hàng tồn kho nhanh, giảm giá sốc có giới hạn thời gian",
+            "brand_launch": "Ra mắt sản phẩm mới, xây dựng độ nhận diện thương hiệu và sự hào hứng"
+        }
+        goal_desc = goal_labels.get(campaign_goal, goal_labels["sales_boost"])
+        
+        tone_labels = {
+            "trendy": "Hài hước, bắt trend TikTok Gen Z, câu từ dí dỏm, năng động",
+            "expert": "Chuyên gia uy tín, chuyên sâu, phân tích lợi ích khoa học, đáng tin cậy",
+            "fomo": "Gấp gáp, kích thích tâm lý sợ bỏ lỡ cơ hội (FOMO), khan hiếm số lượng",
+            "storytelling": "Kể chuyện cảm xúc, đồng cảm sâu sắc với khó khăn của khách hàng"
+        }
+        tone_desc = tone_labels.get(tone, tone_labels["trendy"])
+        
+        system_instruction = (
+            "Bạn là Giám đốc Sáng tạo và Chuyên gia Marketing Đa kênh (TikTok Shop, Facebook Ads, E-commerce). "
+            "Nhiệm vụ của bạn là tạo ra một gói chiến dịch truyền thông hoàn chỉnh, cuốn hút và chuyển đổi đơn hàng cao. "
+            "BẮT BUỘC trả về định dạng JSON thuần túy theo schema yêu cầu, không kèm giải thích ngoài JSON."
+        )
+
+        prompt = f"""
+Hãy tạo gói chiến dịch Marketing & Kịch bản TikTok Shop cho sản phẩm sau:
+- Tên sản phẩm: {product_name}
+- Danh mục ngành hàng: {category}
+- Giá bán niêm yết: {price:,.0f} VNĐ
+- Tồn kho khả dụng: {stock} sản phẩm
+- Mô tả / Đặc tính: {desc or 'Sản phẩm chất lượng cao, thiết kế hiện đại, được khách hàng tin dùng'}
+- Đối tượng khách hàng mục tiêu: {target_audience or 'Khách hàng trẻ, nhân viên văn phòng, học sinh sinh viên'}
+- Mục tiêu chiến dịch: {goal_desc}
+- Tông giọng truyền thông: {tone_desc}
+
+Yêu cầu định dạng JSON trả về chính xác như sau:
+{{
+  "campaign_title": "Tên chiến dịch ngắn gọn, hấp dẫn",
+  "selling_points": ["Đặc điểm nổi bật 1", "Đặc điểm nổi bật 2", "Đặc điểm nổi bật 3"],
+  "video_script": {{
+    "duration": "30 giây",
+    "music_vibe": "Gợi ý thể loại nhạc nền thịnh hành phù hợp",
+    "hook_technique": "Tên kỹ thuật Hook 3 giây đầu",
+    "scenes": [
+      {{
+        "time": "0s - 3s (HOOK)",
+        "visual": "Gợi ý góc quay, hành động nhân vật, cảnh mở đầu",
+        "voiceover": "Câu thoại mở đầu giật gân, chặn ngón tay người xem",
+        "text_overlay": "Chữ to nổi bật trên màn hình kèm icon"
+      }},
+      {{
+        "time": "4s - 12s (NỖI ĐAU / VẤN ĐỀ)",
+        "visual": "Góc quay thể hiện vấn đề hoặc sự bất tiện thường ngày",
+        "voiceover": "Lời thoại xoáy sâu vào nỗi đau khách hàng",
+        "text_overlay": "Chữ tóm tắt vấn đề"
+      }},
+      {{
+        "time": "13s - 22s (GIẢI PHÁP & TRẢI NGHIỆM)",
+        "visual": "Trình diễn tính năng thực tế của sản phẩm cận cảnh",
+        "voiceover": "Lời thoại chứng minh sản phẩm giải quyết triệt để vấn đề",
+        "text_overlay": "Chữ nêu ưu điểm vượt trội"
+      }},
+      {{
+        "time": "23s - 30s (KÊU GỌI HÀNH ĐỘNG)",
+        "visual": "Nhân vật thỏa mãn, tay chỉ góc trái màn hình nơi có Giỏ Hàng Vàng",
+        "voiceover": "Lời kêu gọi hành động gấp gáp, thúc giục bấm giỏ hàng săn deal",
+        "text_overlay": "Ưu đãi + Mũi tên chỉ giỏ hàng 👇"
+      }}
+    ]
+  }},
+  "social_ad": {{
+    "headline": "Tiêu đề bài viết Facebook/Instagram giật tít, thu hút",
+    "body": "Nội dung bài viết quảng cáo chuẩn công thức AIDA (Attention - Interest - Desire - Action) kèm emoji sinh động và thông tin giá/ưu đãi",
+    "call_to_action": "Mua Ngay / Nhận Ưu Đãi",
+    "hashtags": ["#Tag1", "#Tag2", "#Tag3", "#Tag4", "#Tag5"]
+  }},
+  "seo_pack": {{
+    "shopee_title": "Tiêu đề sản phẩm chuẩn SEO Shopee/TikTok Shop dưới 120 ký tự",
+    "keywords": ["từ khóa 1", "từ khóa 2", "từ khóa 3", "từ khóa 4"]
+  }}
+}}
+"""
+        raw_response = generate_ai_response(prompt, system_instruction=system_instruction)
+        clean_text = raw_response.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        if clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+        clean_text = clean_text.strip()
+        
+        try:
+            data = json.loads(clean_text)
+            if "video_script" in data and isinstance(data["video_script"], dict):
+                vs = data["video_script"]
+                if "scenes" in vs and "storyboard" not in vs:
+                    vs["storyboard"] = vs["scenes"]
+                if "hook_technique" in vs and "hook_type" not in vs:
+                    vs["hook_type"] = vs["hook_technique"]
+            if "social_ad" in data and isinstance(data["social_ad"], dict):
+                sa = data["social_ad"]
+                if "body" in sa and "primary_text" not in sa:
+                    sa["primary_text"] = sa["body"]
+            if "seo_pack" in data and isinstance(data["seo_pack"], dict):
+                sp = data["seo_pack"]
+                if "keywords" in sp and "target_keywords" not in sp:
+                    sp["target_keywords"] = sp["keywords"]
+                if "hashtags" not in sp and "social_ad" in data and isinstance(data["social_ad"], dict) and "hashtags" in data["social_ad"]:
+                    sp["hashtags"] = data["social_ad"]["hashtags"]
+            return data
+        except Exception:
+            return {
+                "campaign_title": f"Chiến dịch đột phá doanh số: {product_name}",
+                "selling_points": ["Chất lượng cao cấp", "Giá thành tối ưu", "Hỗ trợ bảo hành uy tín"],
+                "video_script": {
+                    "duration": "30 giây",
+                    "music_vibe": "Trending Trap / Phonk beat sôi động",
+                    "hook_technique": "Câu hỏi gây tò mò",
+                    "scenes": [
+                        {
+                            "time": "0s - 3s (HOOK)",
+                            "visual": "Cận cảnh sản phẩm với ánh sáng đẹp mắt",
+                            "voiceover": f"Bạn đang tìm kiếm {product_name} vừa bền vừa đẹp?",
+                            "text_overlay": f"CỰC PHẨM {product_name.upper()} 🔥"
+                        },
+                        {
+                            "time": "4s - 12s (PAIN POINT)",
+                            "visual": "Minh họa sự bất tiện khi dùng các sản phẩm thông thường",
+                            "voiceover": "Đừng để những sản phẩm kém chất lượng làm lãng phí tiền bạc của bạn.",
+                            "text_overlay": "Đừng lãng phí tiền! ❌"
+                        },
+                        {
+                            "time": "13s - 22s (SOLUTION)",
+                            "visual": "Trình diễn các tính năng độc đáo của sản phẩm trên tay",
+                            "voiceover": f"Với {product_name}, mọi vấn đề được giải quyết nhanh gọn và êm ái.",
+                            "text_overlay": "GIẢI PHÁP HOÀN HẢO ✅"
+                        },
+                        {
+                            "time": "23s - 30s (CALL TO ACTION)",
+                            "visual": "Người dùng cười tươi chỉ vào giỏ hàng vàng",
+                            "voiceover": "Bấm ngay vào giỏ hàng bên dưới để nhận voucher giảm giá hôm nay nhé!",
+                            "text_overlay": "BẤM GIỎ HÀNG NGAY 👇"
+                        }
+                    ]
+                },
+                "social_ad": {
+                    "headline": f"🔥 BÙNG NỔ ƯU ĐÃI: {product_name.upper()} CHÍNH HÃNG!",
+                    "body": f"✨ Bạn đang tìm kiếm {product_name} hoàn hảo cho nhu cầu hàng ngày?\n\n👉 Giá ưu đãi độc quyền chỉ {price:,.0f} VNĐ hôm nay!\n\nSố lượng có hạn, nhanh tay đặt hàng ngay!",
+                    "call_to_action": "Bấm Mua Ngay",
+                    "hashtags": [f"#{category.replace(' ', '')}", "#TikTokShop", "#SaleHot", "#Review"]
+                },
+                "seo_pack": {
+                    "shopee_title": f"{product_name} Chính Hãng Cao Cấp Giá Tốt",
+                    "keywords": [product_name.lower(), category.lower()]
+                }
+            }
+

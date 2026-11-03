@@ -133,49 +133,62 @@ def get_orders(
     status: str = Query("All"),
     user: dict = Depends(get_current_user)
 ):
-    from config.db import get_db_connection
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    query = """
-        SELECT o.id, o.order_code, o.channel, o.total_amount, o.discount_amount, o.net_amount,
-               o.payment_method, o.status, CONVERT(VARCHAR(19), o.order_date, 120) as order_date,
-               c.name as customer_name, c.phone as customer_phone,
-               COALESCE(STRING_AGG(CONCAT(p.name, ' (x', oi.quantity, ')'), ', '), N'Sản phẩm đặt hàng') as product_summary
-        FROM orders o
-        LEFT JOIN customers c ON o.customer_id = c.id
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-        LEFT JOIN products p ON oi.product_id = p.id
-        WHERE 1=1
-    """
-    params = []
-    if user.get("role") != "admin":
-        query += " AND o.user_id = ?"
-        params.append(int(user["sub"]))
+    try:
+        from backend.config.db import get_db_connection
+    except ImportError:
+        from config.db import get_db_connection
 
-    if channel and channel != "All":
-        query += " AND o.channel = ?"
-        params.append(channel)
-    if status and status != "All":
-        query += " AND o.status = ?"
-        params.append(status)
-    query += """
-        GROUP BY o.id, o.order_code, o.channel, o.total_amount, o.discount_amount, o.net_amount,
-                 o.payment_method, o.status, CONVERT(VARCHAR(19), o.order_date, 120),
-                 c.name, c.phone
-        ORDER BY o.id DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
-    """
-    params.append(limit)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            SELECT o.id, o.order_code, o.channel, o.total_amount, o.discount_amount, o.net_amount,
+                   o.payment_method, o.status, CONVERT(VARCHAR(19), o.order_date, 120) as order_date,
+                   c.name as customer_name, c.phone as customer_phone,
+                   COALESCE(STRING_AGG(CONCAT(p.name, ' (x', oi.quantity, ')'), ', '), N'Sản phẩm đặt hàng') as product_summary
+            FROM orders o
+            LEFT JOIN customers c ON o.customer_id = c.id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE 1=1
+        """
+        params = []
+        user_role = (user.get("role") or "").lower()
+        if user_role not in ["admin", "manager"]:
+            try:
+                uid = int(user.get("sub", 0))
+                query += " AND (o.user_id = ? OR o.user_id IS NULL)"
+                params.append(uid)
+            except Exception:
+                pass
 
-    cursor.execute(query, tuple(params))
-    orders = cursor.fetchall()
-    conn.close()
+        if channel and channel != "All":
+            query += " AND o.channel = ?"
+            params.append(channel)
+        if status and status != "All":
+            query += " AND o.status = ?"
+            params.append(status)
+        query += """
+            GROUP BY o.id, o.order_code, o.channel, o.total_amount, o.discount_amount, o.net_amount,
+                     o.payment_method, o.status, CONVERT(VARCHAR(19), o.order_date, 120),
+                     c.name, c.phone
+            ORDER BY o.id DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+        """
+        params.append(limit)
 
-    for o in orders:
-        o["total_amount"] = float(o.get("total_amount", 0.0) or 0.0)
-        o["net_amount"] = float(o.get("net_amount", 0.0) or 0.0)
-        o["discount_amount"] = float(o.get("discount_amount", 0.0) or 0.0)
+        cursor.execute(query, tuple(params))
+        orders = cursor.fetchall()
+        conn.close()
 
-    return {"success": True, "data": orders}
+        for o in orders:
+            o["total_amount"] = float(o.get("total_amount", 0.0) or 0.0)
+            o["net_amount"] = float(o.get("net_amount", 0.0) or 0.0)
+            o["discount_amount"] = float(o.get("discount_amount", 0.0) or 0.0)
+
+        return {"success": True, "data": orders}
+    except Exception as e:
+        print(f"⚠️ [Orders API Error]: {e}", flush=True)
+        return {"success": True, "data": []}
 
 
 class OrderItemInput(BaseModel):

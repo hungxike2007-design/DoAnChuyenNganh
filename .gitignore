@@ -25,3 +25,12 @@ data/database.sqlite
 *.log
 .DS_Store
 Thumbs.db
+
+# Context Mode (AI tool)
+context-mode-main/
+GEMINI.md
+ui-ux-pro-max-skill-main/
+
+# AI Agent & Skills
+.agents/
+AGENTS.md
