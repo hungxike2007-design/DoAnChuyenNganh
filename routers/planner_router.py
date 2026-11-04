@@ -26,11 +26,11 @@ class GeneratePlanRequest(BaseModel):
 @router.get("/baseline")
 def get_planning_baseline(
     days: int = Query(30, ge=7, le=180),
-    user: dict = Depends(require_roles("admin", "manager"))
+    user: dict = Depends(require_roles("admin", "manager", "sales", "user"))
 ):
     """Lấy số liệu thực tế từ cơ sở dữ liệu làm mốc cơ sở (baseline) để lập kế hoạch."""
     try:
-        target_user_id = None if user.get("role") == "admin" else int(user["sub"])
+        target_user_id = None if user.get("role") in ["admin", "manager"] else int(user["sub"])
         data = PlannerService.get_baseline_data(days, user_id=target_user_id)
         return {"success": True, "data": data}
     except Exception as e:
@@ -40,11 +40,11 @@ def get_planning_baseline(
 @router.post("/generate")
 def generate_revenue_plan(
     req: GeneratePlanRequest,
-    user: dict = Depends(require_roles("admin", "manager"))
+    user: dict = Depends(require_roles("admin", "manager", "sales", "user"))
 ):
     """Kích hoạt mô hình phân rã mục tiêu và gọi Gemini AI lập lộ trình hành động 4 tuần."""
     try:
-        target_user_id = None if user.get("role") == "admin" else int(user["sub"])
+        target_user_id = None if user.get("role") in ["admin", "manager"] else int(user["sub"])
         result = PlannerService.generate_goal_plan(
             target_revenue=req.target_revenue,
             days=req.days or 30,
@@ -58,11 +58,11 @@ def generate_revenue_plan(
 @router.get("/history")
 def get_plan_history(
     limit: int = Query(10, ge=1, le=50),
-    user: dict = Depends(require_roles("admin", "manager"))
+    user: dict = Depends(require_roles("admin", "manager", "sales", "user"))
 ):
     """Xem lại danh sách các bản kế hoạch doanh thu đã lưu."""
     try:
-        target_user_id = None if user.get("role") == "admin" else int(user["sub"])
+        target_user_id = None if user.get("role") in ["admin", "manager"] else int(user["sub"])
         data = PlannerService.get_plan_history(limit, user_id=target_user_id)
         return {"success": True, "data": data}
     except Exception as e:

@@ -131,6 +131,7 @@ def get_orders(
     limit: int = Query(50, ge=1, le=200),
     channel: str = Query("All"),
     status: str = Query("All"),
+    view_user_id: Optional[int] = Query(None),
     user: dict = Depends(get_current_user)
 ):
     try:
@@ -157,10 +158,13 @@ def get_orders(
         if user_role not in ["admin", "manager"]:
             try:
                 uid = int(user.get("sub", 0))
-                query += " AND (o.user_id = ? OR o.user_id IS NULL)"
+                query += " AND o.user_id = ?"
                 params.append(uid)
             except Exception:
                 pass
+        elif view_user_id:
+            query += " AND o.user_id = ?"
+            params.append(view_user_id)
 
         if channel and channel != "All":
             query += " AND o.channel = ?"

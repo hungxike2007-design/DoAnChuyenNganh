@@ -29,7 +29,7 @@ async def import_orders(
     - Tự động nhận diện các cột: Mã đơn, Kênh, Khách hàng, Sản phẩm, Đơn giá, v.v.
     """
     try:
-        user_id = None if user.get("role") == "admin" else int(user.get("sub", 0))
+        user_id = int(user.get("sub", 0)) if user.get("sub") else None
         contents = await file.read()
         if len(contents) == 0:
             raise HTTPException(status_code=400, detail="File tải lên hoàn toàn rỗng!")
@@ -55,7 +55,7 @@ async def import_products(
     - Tự động cập nhật sản phẩm nếu trùng SKU, thêm mới nếu chưa có.
     """
     try:
-        user_id = None if user.get("role") == "admin" else int(user.get("sub", 0))
+        user_id = int(user.get("sub", 0)) if user.get("sub") else None
         contents = await file.read()
         if len(contents) == 0:
             raise HTTPException(status_code=400, detail="File tải lên hoàn toàn rỗng!")

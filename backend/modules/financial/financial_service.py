@@ -46,7 +46,7 @@ class FinancialService:
 
                 user_filter = ""
                 if role in ("sales", "user") and user_id is not None:
-                    user_filter = " AND (o.user_id = ? OR o.user_id IS NULL)"
+                    user_filter = " AND o.user_id = ?"
                     params.append(user_id)
 
                 # Query doanh thu đơn hoàn thành

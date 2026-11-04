@@ -47,30 +47,40 @@ class ImportService:
             "Tên sản phẩm", "Mã SKU", "Số lượng", "Đơn giá", "Giảm giá", 
             "Ngày đặt", "Phương thức thanh toán", "Trạng thái"
         ])
+        
+        # Sinh mã đơn tự động theo thời gian để mỗi lần tải về luôn có mã đơn mới
+        ts = datetime.now().strftime("%m%d%H%M")
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
         writer.writerow([
-            "ORD-SP-101", "Shopee", "Nguyễn Thu Hà", "0912345678", 
+            f"ORD-SP-{ts}-01", "Shopee", "Nguyễn Thu Hà", "0912345678", 
             "Áo sơ mi lụa công sở", "SKU-SM-01", 2, 350000, 0, 
-            datetime.now().strftime("%Y-%m-%d"), "COD", "completed"
+            today_str, "COD", "completed"
         ])
         writer.writerow([
-            "ORD-SP-101", "Shopee", "Nguyễn Thu Hà", "0912345678", 
+            f"ORD-SP-{ts}-01", "Shopee", "Nguyễn Thu Hà", "0912345678", 
             "Chân váy xếp ly dáng dài", "SKU-CV-02", 1, 280000, 30000, 
-            datetime.now().strftime("%Y-%m-%d"), "COD", "completed"
+            today_str, "COD", "completed"
         ])
         writer.writerow([
-            "ORD-TK-102", "TikTok Shop", "Trần Quốc Bảo", "0987654321", 
+            f"ORD-TK-{ts}-02", "TikTok Shop", "Trần Quốc Bảo", "0987654321", 
             "Tai nghe Bluetooth chống ồn", "SKU-TN-03", 1, 490000, 50000, 
-            datetime.now().strftime("%Y-%m-%d"), "Chuyển khoản", "completed"
+            today_str, "Chuyển khoản", "completed"
         ])
         writer.writerow([
-            "ORD-STORE-103", "Cửa hàng trực tiếp", "Lê Minh Tuấn", "0903112233", 
+            f"ORD-STORE-{ts}-03", "Cửa hàng trực tiếp", "Lê Minh Tuấn", "0903112233", 
             "Balo laptop chống nước", "SKU-BL-04", 1, 620000, 0, 
-            datetime.now().strftime("%Y-%m-%d"), "Thẻ tín dụng", "completed"
+            today_str, "Thẻ tín dụng", "completed"
         ])
         writer.writerow([
-            "ORD-WEB-104", "Website", "Phạm Hương Giang", "0934556677", 
+            f"ORD-WEB-{ts}-04", "Website", "Phạm Hương Giang", "0934556677", 
             "Đồng hồ thông minh thể thao", "SKU-DH-05", 1, 850000, 100000, 
-            datetime.now().strftime("%Y-%m-%d"), "Chuyển khoản", "completed"
+            today_str, "Chuyển khoản", "completed"
+        ])
+        writer.writerow([
+            f"ORD-TK-{ts}-05", "TikTok Shop", "Hoàng Gia Huy", "0978123456", 
+            "Giày thể thao chạy bộ Air", "SKU-GIAY-01", 1, 750000, 50000, 
+            today_str, "COD", "completed"
         ])
         # Thêm tiền tố UTF-8 BOM (\xef\xbb\xbf) để Excel hiển thị đúng tiếng Việt
         return '\ufeff'.encode('utf-8') + output.getvalue().encode('utf-8')
@@ -173,20 +183,14 @@ class ImportService:
         cursor = conn.cursor()
 
         try:
-            # Lấy danh sách sản phẩm hiện có của shop
-            if user_id:
-                cursor.execute("SELECT id, sku, name, selling_price, cost_price FROM products WHERE user_id = ?", (user_id,))
-            else:
-                cursor.execute("SELECT id, sku, name, selling_price, cost_price FROM products")
+            # Lấy danh sách toàn bộ sản phẩm hiện có (do SKU có ràng buộc UNIQUE toàn bảng)
+            cursor.execute("SELECT id, sku, name, selling_price, cost_price FROM products")
             existing_products = cursor.fetchall()
             prod_by_sku = {p["sku"].upper(): p for p in existing_products if p.get("sku")}
             prod_by_name = {p["name"].strip().lower(): p for p in existing_products if p.get("name")}
 
-            # Lấy danh sách khách hàng hiện có của shop
-            if user_id:
-                cursor.execute("SELECT id, name, phone FROM customers WHERE user_id = ?", (user_id,))
-            else:
-                cursor.execute("SELECT id, name, phone FROM customers")
+            # Lấy danh sách khách hàng hiện có
+            cursor.execute("SELECT id, name, phone FROM customers")
             existing_customers = cursor.fetchall()
             cust_by_phone = {c["phone"].strip(): c for c in existing_customers if c.get("phone")}
             cust_by_name = {c["name"].strip().lower(): c for c in existing_customers if c.get("name")}
@@ -280,6 +284,7 @@ class ImportService:
                 })
 
             imported_orders_count = 0
+            updated_orders_count = 0
             imported_items_count = 0
             total_revenue_imported = 0.0
             new_customers_created = 0
@@ -297,12 +302,13 @@ class ImportService:
                 elif c_name.lower() in cust_by_name:
                     cust_id = cust_by_name[c_name.lower()]["id"]
                 else:
-                    # Tạo khách hàng mới
+                    # Tạo khách hàng mới với email độc nhất
+                    unique_email = f"cust_{int(datetime.now().timestamp()*1000)}_{random.randint(1000, 9999)}@import.local"
                     cursor.execute("""
                         INSERT INTO customers (name, email, phone, city, segment, total_spent, orders_count, last_order_date, user_id)
                         OUTPUT INSERTED.id
                         VALUES (?, ?, ?, ?, 'New', 0, 0, GETDATE(), ?)
-                    """, (c_name, f"cust_{random.randint(10000, 99999)}@import.local", c_phone or None, "Hồ Chí Minh", user_id))
+                    """, (c_name, unique_email, c_phone or None, "Hồ Chí Minh", user_id))
                     cust_row = cursor.fetchone()
                     cust_id = cust_row["id"] if cust_row else None
                     new_customers_created += 1
@@ -310,22 +316,64 @@ class ImportService:
                         cust_by_phone[c_phone] = {"id": cust_id, "name": c_name, "phone": c_phone}
                     cust_by_name[c_name.lower()] = {"id": cust_id, "name": c_name, "phone": c_phone}
 
-                # 2. Xử lý sản phẩm & chi phí
+                # 2. Xử lý đơn hàng (Upsert: Nếu trùng mã thì cập nhật, nếu chưa có thì thêm mới)
                 tot_amount = sum(it["total_price"] for it in ord_info["items"])
                 net_amount = max(0.0, tot_amount - ord_info["discount_amount"])
                 order_date_str = ord_info["order_date"].strftime("%Y-%m-%d %H:%M:%S")
 
-                cursor.execute("""
-                    INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
-                    OUTPUT INSERTED.id
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    ord_info["order_code"], cust_id, ord_info["channel"], tot_amount,
-                    ord_info["discount_amount"], net_amount, ord_info["payment_method"],
-                    ord_info["status"], order_date_str, user_id
-                ))
-                order_row = cursor.fetchone()
-                order_id = order_row["id"] if order_row else None
+                cursor.execute("SELECT id, net_amount FROM orders WHERE order_code = ?", (ord_info["order_code"],))
+                existing_order = cursor.fetchone()
+
+                if existing_order:
+                    order_id = existing_order["id"]
+                    old_net_amount = float(existing_order.get("net_amount", 0) or 0)
+
+                    # Cập nhật thông tin đơn hàng đã có
+                    cursor.execute("""
+                        UPDATE orders
+                        SET customer_id = ?, channel = ?, total_amount = ?, discount_amount = ?,
+                            net_amount = ?, payment_method = ?, status = ?, order_date = ?
+                        WHERE id = ?
+                    """, (
+                        cust_id, ord_info["channel"], tot_amount,
+                        ord_info["discount_amount"], net_amount, ord_info["payment_method"],
+                        ord_info["status"], order_date_str, order_id
+                    ))
+                    # Xóa các chi tiết món cũ trong đơn để ghi đè chi tiết mới
+                    cursor.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
+                    updated_orders_count += 1
+
+                    # Điều chỉnh chi tiêu khách hàng nếu thay đổi giá trị
+                    if cust_id:
+                        cursor.execute("""
+                            UPDATE customers 
+                            SET total_spent = total_spent - ? + ?,
+                                last_order_date = ?
+                            WHERE id = ?
+                        """, (old_net_amount, net_amount, order_date_str, cust_id))
+                else:
+                    cursor.execute("""
+                        INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
+                        OUTPUT INSERTED.id
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        ord_info["order_code"], cust_id, ord_info["channel"], tot_amount,
+                        ord_info["discount_amount"], net_amount, ord_info["payment_method"],
+                        ord_info["status"], order_date_str, user_id
+                    ))
+                    order_row = cursor.fetchone()
+                    order_id = order_row["id"] if order_row else None
+                    imported_orders_count += 1
+
+                    # Cập nhật chi tiêu khách hàng mới
+                    if cust_id:
+                        cursor.execute("""
+                            UPDATE customers 
+                            SET total_spent = total_spent + ?,
+                                orders_count = orders_count + 1,
+                                last_order_date = ?
+                            WHERE id = ?
+                        """, (net_amount, order_date_str, cust_id))
 
                 # 3. Ghi chi tiết order_items
                 for it in ord_info["items"]:
@@ -343,16 +391,24 @@ class ImportService:
                         prod_id = p_obj["id"]
                         c_price = float(p_obj.get("cost_price", 0) or c_price)
                     else:
-                        # Tự động tạo sản phẩm mới vào kho của shop
-                        cursor.execute("""
-                            INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
-                            OUTPUT INSERTED.id
-                            VALUES (?, ?, 1, ?, ?, 100, ?)
-                        """, (p_sku, p_name, c_price, it["unit_price"], user_id))
-                        p_row = cursor.fetchone()
-                        prod_id = p_row["id"] if p_row else None
-                        new_products_created += 1
-                        prod_by_sku[p_sku] = {"id": prod_id, "sku": p_sku, "name": p_name, "cost_price": c_price}
+                        # Kiểm tra lại trực tiếp trong CSDL xem SKU đã tồn tại chưa (phòng ngừa duplicate SKU)
+                        cursor.execute("SELECT id, cost_price, name FROM products WHERE UPPER(sku) = ?", (p_sku,))
+                        p_exist = cursor.fetchone()
+                        if p_exist:
+                            prod_id = p_exist["id"]
+                            c_price = float(p_exist.get("cost_price", 0) or c_price)
+                            prod_by_sku[p_sku] = {"id": prod_id, "sku": p_sku, "name": p_exist.get("name", p_name), "cost_price": c_price}
+                        else:
+                            # Tự động tạo sản phẩm mới vào kho của shop
+                            cursor.execute("""
+                                INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
+                                OUTPUT INSERTED.id
+                                VALUES (?, ?, 1, ?, ?, 100, ?)
+                            """, (p_sku, p_name, c_price, it["unit_price"], user_id))
+                            p_row = cursor.fetchone()
+                            prod_id = p_row["id"] if p_row else None
+                            new_products_created += 1
+                            prod_by_sku[p_sku] = {"id": prod_id, "sku": p_sku, "name": p_name, "cost_price": c_price}
                         prod_by_name[p_name.lower()] = prod_by_sku[p_sku]
 
                     cursor.execute("""
@@ -361,31 +417,28 @@ class ImportService:
                     """, (order_id, prod_id, it["quantity"], it["unit_price"], c_price, it["total_price"]))
                     imported_items_count += 1
 
-                # Cập nhật chi tiêu khách hàng
-                if cust_id:
-                    cursor.execute("""
-                        UPDATE customers 
-                        SET total_spent = total_spent + ?,
-                            orders_count = orders_count + 1,
-                            last_order_date = ?
-                        WHERE id = ?
-                    """, (net_amount, order_date_str, cust_id))
-
-                imported_orders_count += 1
                 total_revenue_imported += net_amount
 
             conn.commit()
             conn.close()
 
+            msg_parts = []
+            if imported_orders_count > 0:
+                msg_parts.append(f"nạp mới {imported_orders_count} đơn")
+            if updated_orders_count > 0:
+                msg_parts.append(f"cập nhật {updated_orders_count} đơn trùng mã")
+            summary_msg = f"Xử lý thành công: {', '.join(msg_parts)} ({imported_items_count} mặt hàng) với tổng doanh thu {total_revenue_imported:,.0f} đ!"
+
             return {
                 "success": True,
                 "imported_orders_count": imported_orders_count,
+                "updated_orders_count": updated_orders_count,
                 "imported_items_count": imported_items_count,
                 "total_revenue": total_revenue_imported,
                 "new_products_created": new_products_created,
                 "new_customers_created": new_customers_created,
                 "warnings": warnings,
-                "message": f"Nạp thành công {imported_orders_count} đơn hàng ({imported_items_count} mặt hàng) với tổng doanh thu {total_revenue_imported:,.0f} VNĐ!"
+                "message": summary_msg
             }
 
         except Exception as e:

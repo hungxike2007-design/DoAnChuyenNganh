@@ -159,5 +159,17 @@ CREATE TABLE financial_expenses (
 );
 GO
 
+-- 13. Tạo Bảng user_product_prices (Bảng giá riêng theo từng tài khoản / Đại lý B2B)
+CREATE TABLE user_product_prices (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL FOREIGN KEY REFERENCES users(id) ON DELETE CASCADE,
+    product_id INT NOT NULL FOREIGN KEY REFERENCES products(id) ON DELETE CASCADE,
+    custom_price DECIMAL(18,2) NOT NULL,
+    note NVARCHAR(255) DEFAULT '',
+    updated_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT UQ_User_Product_Price UNIQUE (user_id, product_id)
+);
+GO
+
 PRINT N'✅ Đã khởi tạo cấu trúc toàn bộ các bảng thành công trong SQL Server!';
 GO
