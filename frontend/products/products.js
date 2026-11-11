@@ -191,6 +191,7 @@ function renderProductsTable(products) {
   }).join('');
 }
 
+
 async function handleAddProduct() {
   const sku = document.getElementById('modal-sku').value.trim();
   const name = document.getElementById('modal-name').value.trim();

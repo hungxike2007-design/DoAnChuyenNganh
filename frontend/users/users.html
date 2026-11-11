@@ -206,11 +206,23 @@
           </div>
         </div>
 
+        <section class="glass-card data-table-card" style="margin-top:24px;padding:20px;">
+          <h3>Nhật ký kiểm toán</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;">
+            <select id="audit-action"><option value="ALL">Tất cả hành động</option><option>UPDATE_PRICE</option><option>UPDATE_OPEX</option><option>CHANGE_ROLE</option><option>IMPORT_EXCEL</option><option>ADD_ORDER_COST</option><option>UPDATE_ORDER_COST</option><option>RECONCILE_ORDER_FEES</option></select>
+            <input id="audit-search" placeholder="Email người thực hiện">
+            <input id="audit-from" type="date" aria-label="Từ ngày"><input id="audit-to" type="date" aria-label="Đến ngày">
+            <button class="btn btn-primary" onclick="loadAuditLogs()">Lọc</button>
+          </div>
+          <div style="overflow-x:auto;"><table class="custom-table"><thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody id="audit-tbody"></tbody></table></div>
+        </section>
+
       </div>
     </main>
   </div>
 
   <div id="toast-container"></div>
+  <div id="audit-detail" role="dialog" aria-modal="true" aria-label="Chi tiết nhật ký" style="display:none;position:fixed;inset:0;background:#0008;z-index:10000;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)this.style.display='none'"><div style="background:white;padding:22px;border-radius:12px;max-width:760px;width:100%;max-height:85vh;overflow:auto"><button onclick="document.getElementById('audit-detail').style.display='none'" aria-label="Đóng">Đóng</button><pre id="audit-detail-body" style="white-space:pre-wrap"></pre></div></div>
 
   <script src="/frontend/assets/js/api.js"></script>
   <script src="/frontend/users/users.js"></script>

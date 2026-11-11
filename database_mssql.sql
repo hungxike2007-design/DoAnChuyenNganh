@@ -17,6 +17,9 @@ GO
 
 -- 2. Xóa các bảng cũ nếu cần thiết lập lại từ đầu (Thứ tự xóa theo khóa ngoại)
 IF OBJECT_ID('financial_expenses', 'U') IS NOT NULL DROP TABLE financial_expenses;
+IF OBJECT_ID('audit_logs', 'U') IS NOT NULL DROP TABLE audit_logs;
+IF OBJECT_ID('order_fee_status', 'U') IS NOT NULL DROP TABLE order_fee_status;
+IF OBJECT_ID('order_costs', 'U') IS NOT NULL DROP TABLE order_costs;
 IF OBJECT_ID('ai_chat_messages', 'U') IS NOT NULL DROP TABLE ai_chat_messages;
 IF OBJECT_ID('ai_strategy_logs', 'U') IS NOT NULL DROP TABLE ai_strategy_logs;
 IF OBJECT_ID('order_items', 'U') IS NOT NULL DROP TABLE order_items;
@@ -169,6 +172,45 @@ CREATE TABLE user_product_prices (
     updated_at DATETIME2 DEFAULT GETDATE(),
     CONSTRAINT UQ_User_Product_Price UNIQUE (user_id, product_id)
 );
+GO
+
+-- 14. Tạo Bảng audit_logs (Nhật ký kiểm toán & truy vết thay đổi dữ liệu nhạy cảm)
+CREATE TABLE audit_logs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NULL FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
+    user_email NVARCHAR(150),
+    user_role NVARCHAR(50),
+    action NVARCHAR(50) NOT NULL,        -- 'UPDATE_PRICE', 'UPDATE_OPEX', 'CHANGE_ROLE', 'IMPORT_ORDERS'
+    target_table NVARCHAR(50) NOT NULL,  -- 'user_product_prices', 'financial_expenses', 'users', 'orders'
+    target_id NVARCHAR(100),             -- ID hoặc mã bản ghi tác động
+    old_value NVARCHAR(MAX),             -- JSON lưu trữ giá trị trước khi sửa
+    new_value NVARCHAR(MAX),             -- JSON lưu trữ giá trị sau khi sửa
+    ip_address NVARCHAR(50),
+    created_at DATETIME2 DEFAULT GETDATE()
+);
+GO
+
+-- 15. Chi phí bán hàng trực tiếp và trạng thái đối soát từng đơn
+CREATE TABLE order_costs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL FOREIGN KEY REFERENCES orders(id) ON DELETE CASCADE,
+    cost_type NVARCHAR(40) NOT NULL,
+    amount DECIMAL(18,2) NOT NULL CHECK(amount > 0),
+    source NVARCHAR(40) NOT NULL DEFAULT 'manual',
+    note NVARCHAR(500) NOT NULL DEFAULT '',
+    created_by INT NULL FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
+    created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+    updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
+);
+CREATE INDEX IX_order_costs_order_id ON order_costs(order_id);
+
+CREATE TABLE order_fee_status (
+    order_id INT PRIMARY KEY FOREIGN KEY REFERENCES orders(id) ON DELETE CASCADE,
+    status NVARCHAR(20) NOT NULL DEFAULT 'unverified' CHECK(status IN ('unverified', 'entered', 'reconciled')),
+    updated_by INT NULL FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
+    updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
+);
+CREATE INDEX IX_order_items_order_id ON order_items(order_id);
 GO
 
 PRINT N'✅ Đã khởi tạo cấu trúc toàn bộ các bảng thành công trong SQL Server!';

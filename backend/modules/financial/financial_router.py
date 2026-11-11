@@ -9,10 +9,11 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, Query, Depends, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Query, Depends, HTTPException, status, Request
+from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta, date
+from decimal import Decimal
 
 try:
     from backend.modules.financial.financial_service import FinancialService
@@ -75,6 +76,7 @@ def get_pnl_report(
 @router.post("/expenses")
 def update_expenses(
     req: ExpenseUpdateRequest,
+    request: Request,
     current_user: dict = Depends(require_roles("admin", "manager"))
 ):
     """Cập nhật chi phí vận hành (OPEX) cho một kỳ kế toán (Chỉ Admin và Manager)."""
@@ -95,7 +97,10 @@ def update_expenses(
             utilities=req.utilities_expense,
             other=req.other_expense,
             note=req.note or "",
-            user_id=user_id
+            user_id=user_id,
+            user_email=current_user.get("email", ""),
+            user_role=current_user.get("role", ""),
+            ip_address=request.client.host if request.client else ""
         )
         return {"success": ok, "message": f"Đã lưu chi phí vận hành cho kỳ {req.month_year} thành công!"}
     except Exception as e:
@@ -118,3 +123,95 @@ def list_expenses_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi khi tải lịch sử chi phí: {str(e)}"
         )
+
+
+class OrderCostRequest(BaseModel):
+    cost_type: str = Field(pattern="^(marketplace_fee|payment_fee|shipping_cost|packaging|order_ads|other)$")
+    amount: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
+    note: str = Field(default="", max_length=500)
+
+
+class OrderFeeStatusRequest(BaseModel):
+    status: str = Field(pattern="^(unverified|entered|reconciled)$")
+
+
+@router.get("/order-profit")
+def list_order_profit(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    channel: str = Query("All"),
+    order_status: str = Query("All"),
+    fee_status: str = Query("All", pattern="^(All|unverified|entered|reconciled)$"),
+    profit_filter: str = Query("All", pattern="^(All|negative|nonnegative)$"),
+    from_date: Optional[date] = Query(None),
+    to_date: Optional[date] = Query(None),
+    admin: dict = Depends(require_roles("admin", "manager"))
+):
+    """Danh sách lợi nhuận đóng góp theo đơn, chỉ dành cho Admin/Manager."""
+    try:
+        end_date = (to_date + timedelta(days=1)).strftime("%Y-%m-%d") if to_date else None
+        data = FinancialService.get_order_profit(
+            limit=limit, offset=offset, channel=channel, status=order_status,
+            fee_status=fee_status, profit_filter=profit_filter,
+            from_date=from_date.strftime("%Y-%m-%d") if from_date else None, to_date=end_date
+        )
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi tải phân tích lợi nhuận đơn hàng: {e}")
+
+
+@router.get("/orders/{order_id}/profit")
+def get_order_profit_detail(order_id: int, admin: dict = Depends(require_roles("admin", "manager"))):
+    data = FinancialService.get_order_profit_detail(order_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đơn hàng.")
+    return {"success": True, "data": data}
+
+
+@router.post("/orders/{order_id}/costs")
+def add_order_cost(order_id: int, req: OrderCostRequest, request: Request,
+                   admin: dict = Depends(require_roles("admin", "manager"))):
+    try:
+        user_id = int(admin["sub"])
+        cost_id = FinancialService.add_order_cost(order_id, req.cost_type, float(req.amount), req.note, user_id)
+        from backend.modules.audit.audit_service import AuditService
+        AuditService.record_audit("ADD_ORDER_COST", "order_costs", str(cost_id), user_id, admin.get("email"), admin.get("role"),
+                                  new_value={"order_id": order_id, "cost_type": req.cost_type, "amount": float(req.amount), "note": req.note},
+                                  ip_address=request.client.host if request.client else "")
+        return {"success": True, "data": FinancialService.get_order_profit_detail(order_id)}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Không thể thêm khoản phí: {e}")
+
+
+@router.put("/order-costs/{cost_id}")
+def update_order_cost(cost_id: int, req: OrderCostRequest, request: Request,
+                      admin: dict = Depends(require_roles("admin", "manager"))):
+    try:
+        old = FinancialService.update_order_cost(cost_id, req.cost_type, float(req.amount), req.note)
+        from backend.modules.audit.audit_service import AuditService
+        AuditService.record_audit("UPDATE_ORDER_COST", "order_costs", str(cost_id), int(admin["sub"]), admin.get("email"), admin.get("role"),
+                                  old_value=old, new_value={"cost_type": req.cost_type, "amount": float(req.amount), "note": req.note},
+                                  ip_address=request.client.host if request.client else "")
+        return {"success": True, "data": FinancialService.get_order_profit_detail(old["order_id"])}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Không thể cập nhật khoản phí: {e}")
+
+
+@router.put("/orders/{order_id}/fee-status")
+def update_order_fee_status(order_id: int, req: OrderFeeStatusRequest, request: Request,
+                            admin: dict = Depends(require_roles("admin", "manager"))):
+    try:
+        old_status = FinancialService.set_order_fee_status(order_id, req.status, int(admin["sub"]))
+        from backend.modules.audit.audit_service import AuditService
+        AuditService.record_audit("RECONCILE_ORDER_FEES", "orders", str(order_id), int(admin["sub"]), admin.get("email"), admin.get("role"),
+                                  old_value={"fee_status": old_status}, new_value={"fee_status": req.status},
+                                  ip_address=request.client.host if request.client else "")
+        return {"success": True, "data": FinancialService.get_order_profit_detail(order_id)}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Không thể cập nhật trạng thái đối soát: {e}")

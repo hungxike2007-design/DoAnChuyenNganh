@@ -10,6 +10,7 @@ let currentDays = 180;
 let inspectingUserId = null; // null if viewing own data or if Admin is in ranking mode
 let allRankingUsers = [];
 
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (!requireAuth()) return;
   const user = getUser();

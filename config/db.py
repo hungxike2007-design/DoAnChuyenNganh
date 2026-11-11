@@ -90,8 +90,9 @@ class DBConnectionWrapper:
 
 
 def get_db_connection():
-    """Khởi tạo và trả về kết nối tới SQL Server."""
-    if DB_TYPE == "mssql":
+    """Khởi tạo và trả về kết nối tới SQL Server hoặc SQLite."""
+    current_db_type = os.getenv("DB_TYPE", DB_TYPE).strip().lower()
+    if current_db_type == "mssql":
         try:
             import pyodbc
             drivers = pyodbc.drivers()
@@ -127,13 +128,36 @@ def get_db_connection():
     # Dự phòng SQLite nếu DB_TYPE = sqlite
     import sqlite3
     db_path = ROOT_DIR / os.getenv("DATABASE_PATH", "data/revenue_system.sqlite")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))
+    conn.create_function("VARCHAR", 1, lambda n: "VARCHAR")
+    conn.create_function("CONVERT", 3, lambda t, val, s: str(val)[:10] if val is not None else None)
+    conn.create_function("CONVERT", 2, lambda t, val: str(val) if val is not None else None)
+    conn.create_function("GETDATE", 0, lambda: __import__("datetime").datetime.now().isoformat(" "))
+    conn.execute("""CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, user_email TEXT, user_role TEXT,
+        action TEXT NOT NULL, target_table TEXT NOT NULL, target_id TEXT, old_value TEXT,
+        new_value TEXT, ip_address TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
     return conn
 
 
 def test_connection():
-    """Kiểm tra kết nối tới cơ sở dữ liệu SQL Server."""
+    """Kiểm tra kết nối tới cơ sở dữ liệu SQL Server hoặc SQLite."""
+    current_db_type = os.getenv("DB_TYPE", DB_TYPE).strip().lower()
+    if current_db_type == "sqlite":
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            conn.close()
+            print("✅ [Database] Kết nối thành công tới SQLite!", flush=True)
+            return True
+        except Exception as e:
+            print(f"⚠️ [Database] Kiểm tra kết nối SQLite thất bại: {e}", flush=True)
+            return False
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()

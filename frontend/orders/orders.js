@@ -20,14 +20,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadOrders();
 
+  if (['admin', 'manager'].includes(role)) {
+    document.getElementById('order-profit-section').style.display = 'block';
+    document.getElementById('profit-cost-form').addEventListener('submit', saveProfitCost);
+    await loadOrderProfit(true);
+  }
+
   const channelFilter = document.getElementById('filter-channel');
   const statusFilter = document.getElementById('filter-status');
 
   if (channelFilter) {
-    channelFilter.addEventListener('change', loadOrders);
+    channelFilter.addEventListener('change', () => { loadOrders(); if (['admin', 'manager'].includes(role)) loadOrderProfit(true); });
   }
   if (statusFilter) {
-    statusFilter.addEventListener('change', loadOrders);
+    statusFilter.addEventListener('change', () => { loadOrders(); if (['admin', 'manager'].includes(role)) loadOrderProfit(true); });
   }
 
   // Bắt sự kiện submit form tạo đơn hàng
@@ -125,6 +131,118 @@ function renderOrdersTable(orders) {
       </tr>
     `;
   }).join('');
+}
+
+let orderProfitOffset = 0;
+let currentProfitOrderId = null;
+let editingProfitCostId = null;
+let currentProfitCosts = [];
+
+function escapeProfitText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+async function loadOrderProfit(reset = false) {
+  if (reset) orderProfitOffset = 0;
+  const params = new URLSearchParams({
+    limit: '50', offset: String(orderProfitOffset),
+    channel: document.getElementById('filter-channel')?.value || 'All',
+    order_status: document.getElementById('filter-status')?.value || 'All',
+    fee_status: document.getElementById('profit-fee-status').value,
+    profit_filter: document.getElementById('profit-margin-filter').value
+  });
+  const fromDate = document.getElementById('profit-from-date').value;
+  const toDate = document.getElementById('profit-to-date').value;
+  if (fromDate) params.set('from_date', fromDate);
+  if (toDate) params.set('to_date', toDate);
+  try {
+    const res = await apiRequest(`/api/financial/order-profit?${params}`);
+    const tbody = document.getElementById('order-profit-tbody');
+    if (reset) tbody.innerHTML = '';
+    const feeLabels = {unverified:'Chưa đối soát', entered:'Đã nhập phí', reconciled:'Đã đối soát'};
+    const rows = res.data.map(order => `<tr>
+      <td>${escapeProfitText(order.order_code)}</td><td>${escapeProfitText(order.channel)}</td><td>${escapeProfitText(order.order_date)}</td>
+      <td>${feeLabels[order.fee_status] || 'Chưa đối soát'}</td>
+      <td style="text-align:right;">${formatVND(order.revenue)}</td><td style="text-align:right;">${formatVND(order.cogs)}</td><td style="text-align:right;">${formatVND(order.direct_costs)}</td>
+      <td style="text-align:right;font-weight:700;color:${order.contribution_profit < 0 ? '#dc2626' : '#15803d'}">${order.contribution_profit === null ? '—' : `${formatVND(order.contribution_profit)} (${order.margin_pct}%)`}</td>
+      <td><button type="button" onclick="openProfitDetail(${order.id})">Chi tiết</button></td></tr>`).join('');
+    if (reset) tbody.innerHTML = rows || '<tr><td colspan="9" style="text-align:center;padding:20px;">Không có đơn phù hợp.</td></tr>';
+    else tbody.insertAdjacentHTML('beforeend', rows);
+    orderProfitOffset += res.data.length;
+    document.getElementById('order-profit-more').style.display = res.data.length === 50 ? 'inline-flex' : 'none';
+  } catch (err) {
+    showToast('Không tải được phân tích lợi nhuận đơn: ' + err.message, 'error');
+  }
+}
+
+async function openProfitDetail(orderId) {
+  try {
+    const res = await apiRequest(`/api/financial/orders/${orderId}/profit`);
+    const order = res.data;
+    currentProfitOrderId = orderId;
+    currentProfitCosts = order.costs || [];
+    const costTypeLabels = {marketplace_fee:'Phí sàn', payment_fee:'Phí thanh toán', shipping_cost:'Vận chuyển shop chịu', packaging:'Đóng gói', order_ads:'Quảng cáo theo đơn', other:'Chi phí khác'};
+    const costs = currentProfitCosts.map(cost => `<tr><td>${costTypeLabels[cost.cost_type] || escapeProfitText(cost.cost_type)}</td><td>${formatVND(cost.amount)}</td><td>${escapeProfitText(cost.note)}</td><td><button type="button" onclick="editProfitCost(${cost.id})">Sửa</button></td></tr>`).join('');
+    const items = order.items.map(item => `<tr><td>${escapeProfitText(item.product_name || 'Sản phẩm')}</td><td>${item.quantity}</td><td>${formatVND(item.unit_price)}</td><td>${formatVND(item.cost_price * item.quantity)}</td></tr>`).join('');
+    document.getElementById('profit-detail-content').innerHTML = `
+      <h3>${escapeProfitText(order.order_code)} · ${escapeProfitText(order.channel)}</h3>
+      <div style="overflow-x:auto"><table class="custom-table"><thead><tr><th>Sản phẩm</th><th>SL</th><th>Giá bán</th><th>Giá vốn</th></tr></thead><tbody>${items || '<tr><td colspan="4">Không có dòng hàng</td></tr>'}</tbody></table></div>
+      <div style="overflow-x:auto;margin-top:12px"><table class="custom-table"><thead><tr><th>Khoản phí</th><th>Số tiền</th><th>Ghi chú</th><th></th></tr></thead><tbody>${costs || '<tr><td colspan="4">Chưa nhập khoản phí nào.</td></tr>'}</tbody></table></div>
+      <p><strong>Doanh thu thuần:</strong> ${formatVND(order.revenue)} · <strong>Giá vốn:</strong> ${formatVND(order.cogs)} · <strong>Phí trực tiếp:</strong> ${formatVND(order.direct_costs)}</p>
+      <p><strong>Lợi nhuận đóng góp:</strong> ${order.contribution_profit === null ? 'Chỉ tính cho đơn hoàn thành' : formatVND(order.contribution_profit)} ${order.margin_pct === null ? '' : `(${order.margin_pct}%)`}</p>`;
+    document.getElementById('profit-fee-status-edit').value = order.fee_status;
+    resetProfitCostForm();
+    document.getElementById('order-profit-modal').showModal();
+  } catch (err) { showToast('Không tải được chi tiết lợi nhuận: ' + err.message, 'error'); }
+}
+
+function closeProfitDetail() {
+  document.getElementById('order-profit-modal').close();
+  currentProfitOrderId = null;
+  resetProfitCostForm();
+}
+
+function editProfitCost(costId) {
+  const cost = currentProfitCosts.find(item => item.id === costId);
+  if (!cost) return;
+  editingProfitCostId = costId;
+  document.getElementById('profit-cost-type').value = cost.cost_type;
+  document.getElementById('profit-cost-amount').value = cost.amount;
+  document.getElementById('profit-cost-note').value = cost.note || '';
+  document.getElementById('profit-cost-submit').textContent = 'Lưu khoản phí';
+  document.getElementById('profit-cost-cancel-edit').style.display = 'inline-flex';
+}
+
+function resetProfitCostForm() {
+  editingProfitCostId = null;
+  document.getElementById('profit-cost-form')?.reset();
+  const button = document.getElementById('profit-cost-submit');
+  if (button) button.textContent = 'Thêm khoản phí';
+  const cancel = document.getElementById('profit-cost-cancel-edit');
+  if (cancel) cancel.style.display = 'none';
+}
+
+async function saveProfitCost(event) {
+  event.preventDefault();
+  const payload = {cost_type:document.getElementById('profit-cost-type').value, amount:Number(document.getElementById('profit-cost-amount').value), note:document.getElementById('profit-cost-note').value};
+  const endpoint = editingProfitCostId ? `/api/financial/order-costs/${editingProfitCostId}` : `/api/financial/orders/${currentProfitOrderId}/costs`;
+  try {
+    await apiRequest(endpoint, {method:editingProfitCostId ? 'PUT' : 'POST', body:JSON.stringify(payload)});
+    showToast(editingProfitCostId ? 'Đã cập nhật khoản phí.' : 'Đã thêm khoản phí.', 'success');
+    resetProfitCostForm();
+    await openProfitDetail(currentProfitOrderId);
+    await loadOrderProfit(true);
+  } catch (err) { showToast('Không lưu được khoản phí: ' + err.message, 'error'); }
+}
+
+async function saveProfitFeeStatus() {
+  if (!currentProfitOrderId) return;
+  try {
+    await apiRequest(`/api/financial/orders/${currentProfitOrderId}/fee-status`, {method:'PUT', body:JSON.stringify({status:document.getElementById('profit-fee-status-edit').value})});
+    showToast('Đã cập nhật trạng thái đối soát.', 'success');
+    await openProfitDetail(currentProfitOrderId);
+    await loadOrderProfit(true);
+  } catch (err) { showToast('Không cập nhật được trạng thái: ' + err.message, 'error'); }
 }
 
 /* ==============================================================================

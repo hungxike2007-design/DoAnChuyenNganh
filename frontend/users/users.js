@@ -9,7 +9,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!checkPageRole(['admin'])) return;
 
   await loadUsersList();
+  await loadAuditLogs();
 });
+
+async function loadAuditLogs() {
+  const params = new URLSearchParams({limit:'100', action:document.getElementById('audit-action').value, search:document.getElementById('audit-search').value, from_date:document.getElementById('audit-from').value, to_date:document.getElementById('audit-to').value});
+  try {
+    const res = await apiRequest(`/api/audit/logs?${params}`);
+    document.getElementById('audit-tbody').innerHTML = res.data.map(log => `<tr><td>${escapeAudit(log.created_at)}</td><td>${escapeAudit(log.user_email)} <small>${escapeAudit(log.user_role)}</small></td><td>${escapeAudit(log.action)}</td><td>${escapeAudit(log.target_table)}: ${escapeAudit(log.target_id)}</td><td><button onclick="showAuditDetail(${log.id})">Xem chi tiết</button></td></tr>`).join('') || '<tr><td colspan="5">Không có nhật ký</td></tr>';
+  } catch (err) { showToast('Lỗi tải nhật ký: ' + err.message, 'error'); }
+}
+
+function escapeAudit(value) { const el = document.createElement('span'); el.textContent = value ?? ''; return el.innerHTML; }
+async function showAuditDetail(id) {
+  try { const res = await apiRequest(`/api/audit/logs/${id}`); document.getElementById('audit-detail-body').textContent = JSON.stringify(res.data, null, 2); document.getElementById('audit-detail').style.display = 'flex'; }
+  catch (err) { showToast('Lỗi tải chi tiết nhật ký: ' + err.message, 'error'); }
+}
 
 async function loadUsersList() {
   const tbody = document.getElementById('users-tbody');

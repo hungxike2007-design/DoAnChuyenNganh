@@ -10,7 +10,7 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Response
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Response, Request
 from typing import Optional
 try:
     from backend.modules.auth.auth_router import get_current_user, require_roles
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/api/import", tags=["Data Import (Excel & CSV)"])
 
 @router.post("/orders")
 async def import_orders(
+    request: Request,
     file: UploadFile = File(...),
     user: dict = Depends(get_current_user)
 ):
@@ -39,6 +40,10 @@ async def import_orders(
             raise HTTPException(status_code=400, detail="File tải lên hoàn toàn rỗng!")
 
         result = ImportService.import_orders_from_file(contents, file.filename, user_id=user_id)
+        from backend.modules.audit.audit_service import AuditService
+        AuditService.record_audit("IMPORT_EXCEL", "orders", file.filename, user_id, user.get("email"), user.get("role"),
+                                  ip_address=request.client.host if request.client else "",
+                                  new_value={"filename": file.filename, "total_imported": result.get("imported_orders_count", 0)})
         return result
     except HTTPException:
         raise
@@ -50,6 +55,7 @@ async def import_orders(
 
 @router.post("/products")
 async def import_products(
+    request: Request,
     file: UploadFile = File(...),
     user: dict = Depends(require_roles("admin", "manager"))
 ):
@@ -65,6 +71,10 @@ async def import_products(
             raise HTTPException(status_code=400, detail="File tải lên hoàn toàn rỗng!")
 
         result = ImportService.import_products_from_file(contents, file.filename, user_id=user_id)
+        from backend.modules.audit.audit_service import AuditService
+        AuditService.record_audit("IMPORT_EXCEL", "products", file.filename, user_id, user.get("email"), user.get("role"),
+                                  ip_address=request.client.host if request.client else "",
+                                  new_value={"filename": file.filename, "total_imported": result.get("created_count", 0) + result.get("updated_count", 0)})
         return result
     except HTTPException:
         raise

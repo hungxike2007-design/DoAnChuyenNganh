@@ -1,0 +1,17 @@
+services:
+  web-app:
+    build: .
+    container_name: hethong_revenue_dacn
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8000:8000"
+    environment:
+      DB_TYPE: sqlite
+      DATABASE_PATH: data/revenue_system.sqlite
+      HOST: 0.0.0.0
+      PORT: 8000
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

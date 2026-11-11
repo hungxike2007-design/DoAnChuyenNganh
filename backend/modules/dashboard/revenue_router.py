@@ -13,6 +13,7 @@ Các Endpoint:
 """
 
 from fastapi import APIRouter, Query, Depends, HTTPException
+import os
 from pydantic import BaseModel
 from typing import List, Optional
 try:
@@ -224,6 +225,7 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
 
     conn = get_db_connection()
     cursor = conn.cursor()
+    is_sqlite = os.getenv("DB_TYPE", "mssql").strip().lower() == "sqlite"
 
     try:
         user_id = int(user["sub"])
@@ -250,7 +252,7 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
                     unit_price = 100000.0
 
                 # Kiểm tra xem sản phẩm đã có trong DB chưa
-                cursor.execute("SELECT TOP 1 id, selling_price, cost_price FROM products WHERE name = ?", (prod_name,))
+                cursor.execute("SELECT id, selling_price, cost_price FROM products WHERE name = ? LIMIT 1" if is_sqlite else "SELECT TOP 1 id, selling_price, cost_price FROM products WHERE name = ?", (prod_name,))
                 existing = cursor.fetchone()
                 if existing:
                     prod_id = existing["id"]
@@ -260,11 +262,12 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
                     sku = f"SKU-{random.randint(1000, 9999)}"
                     cursor.execute("""
                         INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
-                        OUTPUT INSERTED.id
                         VALUES (?, ?, 1, ?, ?, 100, ?)
+                    """ if is_sqlite else """
+                        INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
+                        OUTPUT INSERTED.id VALUES (?, ?, 1, ?, ?, 100, ?)
                     """, (sku, prod_name, cost_price, unit_price, user_id))
-                    row_prod = cursor.fetchone()
-                    prod_id = row_prod["id"]
+                    prod_id = cursor.lastrowid if is_sqlite else cursor.fetchone()["id"]
 
             total_price = unit_price * quantity
             total_amount += total_price
@@ -283,12 +286,14 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
         # 1. Thêm vào bảng orders và lấy ngay order_id bằng OUTPUT INSERTED.id
         cursor.execute("""
             INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
-            OUTPUT INSERTED.id
             VALUES (?, ?, ?, ?, 0, ?, ?, 'completed', GETDATE(), ?)
+        """ if is_sqlite else """
+            INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
+            OUTPUT INSERTED.id VALUES (?, ?, ?, ?, 0, ?, ?, 'completed', GETDATE(), ?)
         """, (order_code, req.customerId, req.channel, total_amount, net_amount, req.paymentMethod, user_id))
 
-        row = cursor.fetchone()
-        order_id = row["id"] if row else None
+        row = None if is_sqlite else cursor.fetchone()
+        order_id = cursor.lastrowid if is_sqlite else (row["id"] if row else None)
 
         # 2. Thêm vào bảng order_items và trừ tồn kho
         for it in items_data:
