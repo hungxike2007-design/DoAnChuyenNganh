@@ -186,6 +186,10 @@ class ImportService:
         cursor = conn.cursor()
 
         try:
+            cursor.execute("SELECT id FROM categories ORDER BY id")
+            category_row = cursor.fetchone()
+            default_category_id = category_row["id"] if category_row else None
+
             # Lấy danh sách toàn bộ sản phẩm hiện có (do SKU có ràng buộc UNIQUE toàn bảng)
             cursor.execute("SELECT id, sku, name, selling_price, cost_price FROM products")
             existing_products = cursor.fetchall()
@@ -406,8 +410,8 @@ class ImportService:
                             cursor.execute("""
                                 INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
                                 OUTPUT INSERTED.id
-                                VALUES (?, ?, 1, ?, ?, 100, ?)
-                            """, (p_sku, p_name, c_price, it["unit_price"], user_id))
+                                VALUES (?, ?, ?, ?, ?, 100, ?)
+                            """, (p_sku, p_name, default_category_id, c_price, it["unit_price"], user_id))
                             p_row = cursor.fetchone()
                             prod_id = p_row["id"] if p_row else None
                             new_products_created += 1
@@ -496,7 +500,7 @@ class ImportService:
             # Lấy danh mục
             cursor.execute("SELECT id, name FROM categories")
             categories = {strip_accents_and_normalize(c["name"]): c["id"] for c in cursor.fetchall()}
-            default_cat_id = list(categories.values())[0] if categories else 1
+            default_cat_id = next(iter(categories.values()), None)
 
             # Lấy sản phẩm hiện có
             if user_id:

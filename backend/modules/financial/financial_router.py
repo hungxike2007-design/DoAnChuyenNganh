@@ -34,6 +34,7 @@ class ExpenseUpdateRequest(BaseModel):
     utilities_expense: float = 0.0
     other_expense: float = 0.0
     note: Optional[str] = ""
+    scope_user_id: Optional[int] = None
 
 
 @router.get("/pnl-report")
@@ -41,6 +42,7 @@ def get_pnl_report(
     month: Optional[int] = Query(None, ge=1, le=12, description="Tháng báo cáo (1-12)"),
     year: Optional[int] = Query(None, ge=2020, le=2030, description="Năm báo cáo"),
     channel: str = Query("All", description="Kênh bán hàng lọc"),
+    view_user_id: Optional[int] = Query(None, ge=1),
     current_user: dict = Depends(require_roles("admin", "manager", "sales", "user"))
 ):
     """Lấy Báo cáo Kết quả Hoạt động Kinh doanh (P&L) theo tháng và năm."""
@@ -63,14 +65,21 @@ def get_pnl_report(
             year=target_year,
             channel=channel,
             user_id=user_id,
-            role=role
+            role=role,
+            report_user_id=view_user_id
         )
+
         return {"success": True, "data": report}
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Lỗi khi tổng hợp báo cáo tài chính P&L: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"P&L error: {e}")
+
+
+@router.get("/pnl-users")
+def list_pnl_users(current_user: dict = Depends(require_roles("admin", "manager"))):
+    try:
+        return {"success": True, "data": FinancialService.get_pnl_users()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Không thể tải danh sách người dùng: {e}")
 
 
 @router.post("/expenses")
@@ -100,7 +109,8 @@ def update_expenses(
             user_id=user_id,
             user_email=current_user.get("email", ""),
             user_role=current_user.get("role", ""),
-            ip_address=request.client.host if request.client else ""
+            ip_address=request.client.host if request.client else "",
+            scope_user_id=req.scope_user_id
         )
         return {"success": ok, "message": f"Đã lưu chi phí vận hành cho kỳ {req.month_year} thành công!"}
     except Exception as e:

@@ -25,6 +25,48 @@ def calc_mom(current: float, previous: float) -> float:
 class FinancialService:
 
     @staticmethod
+    def initialize_user_expenses_schema() -> None:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if DB_TYPE == "mssql":
+            cursor.execute("""
+                IF OBJECT_ID('financial_user_expenses', 'U') IS NULL
+                CREATE TABLE financial_user_expenses (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    user_id INT NOT NULL FOREIGN KEY REFERENCES users(id) ON DELETE CASCADE,
+                    month_year NVARCHAR(7) NOT NULL,
+                    channel NVARCHAR(100) NOT NULL DEFAULT 'All',
+                    rent_expense DECIMAL(18,2) NOT NULL DEFAULT 0,
+                    salary_expense DECIMAL(18,2) NOT NULL DEFAULT 0,
+                    marketing_expense DECIMAL(18,2) NOT NULL DEFAULT 0,
+                    utilities_expense DECIMAL(18,2) NOT NULL DEFAULT 0,
+                    other_expense DECIMAL(18,2) NOT NULL DEFAULT 0,
+                    note NVARCHAR(500) NOT NULL DEFAULT '',
+                    CONSTRAINT UQ_financial_user_expenses UNIQUE(user_id, month_year, channel)
+                )
+            """)
+        else:
+            cursor.execute("""CREATE TABLE IF NOT EXISTS financial_user_expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+                month_year TEXT NOT NULL, channel TEXT NOT NULL DEFAULT 'All',
+                rent_expense REAL NOT NULL DEFAULT 0, salary_expense REAL NOT NULL DEFAULT 0,
+                marketing_expense REAL NOT NULL DEFAULT 0, utilities_expense REAL NOT NULL DEFAULT 0,
+                other_expense REAL NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
+                UNIQUE(user_id, month_year, channel))""")
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def get_pnl_users() -> List[Dict[str, Any]]:
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, full_name, email FROM users ORDER BY full_name, id")
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
+    @staticmethod
     def initialize_order_profit_schema() -> None:
         """Create the additive order-cost tables if they are missing."""
         conn = get_db_connection()
@@ -219,13 +261,14 @@ class FinancialService:
         return old_status
 
     @staticmethod
-    def get_pnl_report(month: int, year: int, channel: str = "All", user_id: Optional[int] = None, role: str = "admin") -> Dict[str, Any]:
+    def get_pnl_report(month: int, year: int, channel: str = "All", user_id: Optional[int] = None, role: str = "admin", report_user_id: Optional[int] = None) -> Dict[str, Any]:
         """Tổng hợp và tính toán báo cáo kết quả hoạt động kinh doanh (P&L) theo tháng và năm."""
         month_str = f"{year:04d}-{month:02d}"
         prev_month = 12 if month == 1 else (month - 1)
         prev_year = (year - 1) if month == 1 else year
         prev_month_str = f"{prev_year:04d}-{prev_month:02d}"
 
+        FinancialService.initialize_user_expenses_schema()
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -240,9 +283,10 @@ class FinancialService:
                     params.append(channel)
 
                 user_filter = ""
-                if role in ("sales", "user") and user_id is not None:
+                scope_user_id = report_user_id if role in ("admin", "manager") else user_id
+                if scope_user_id is not None:
                     user_filter = " AND o.user_id = ?"
-                    params.append(user_id)
+                    params.append(scope_user_id)
 
                 # Query doanh thu đơn hoàn thành
                 if DB_TYPE == "mssql":
@@ -297,11 +341,14 @@ class FinancialService:
 
             # 2. Lấy chi phí vận hành (OPEX) từ bảng financial_expenses
             def fetch_opex(target_month: str):
+                scope_user_id = report_user_id if role in ("admin", "manager") else user_id
+                expense_table = "financial_user_expenses" if scope_user_id is not None else "financial_expenses"
+                user_column = " AND user_id = ?" if expense_table == "financial_user_expenses" else ""
+                channel_condition = "channel = ?" if user_column else "channel = 'All'"
                 cursor.execute("""
                     SELECT rent_expense, salary_expense, marketing_expense, utilities_expense, other_expense, note
-                    FROM financial_expenses
-                    WHERE month_year = ? AND channel = 'All'
-                """, (target_month,))
+                    FROM """ + expense_table + " WHERE month_year = ? AND " + channel_condition + user_column,
+                    (target_month, channel, scope_user_id) if user_column else (target_month,))
                 row = cursor.fetchone() or {}
                 rent = float(row.get("rent_expense") or 0)
                 sal = float(row.get("salary_expense") or 0)
@@ -514,9 +561,41 @@ class FinancialService:
         user_id: Optional[int] = None,
         user_email: str = "",
         user_role: str = "",
-        ip_address: str = ""
+        ip_address: str = "",
+        scope_user_id: Optional[int] = None
     ) -> bool:
         """Lưu hoặc cập nhật chi phí vận hành (OPEX) cho một tháng cụ thể."""
+        if scope_user_id is not None:
+            FinancialService.initialize_user_expenses_schema()
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    INSERT INTO financial_user_expenses
+                    (user_id, month_year, channel, rent_expense, salary_expense, marketing_expense, utilities_expense, other_expense, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, month_year, channel) DO UPDATE SET
+                        rent_expense=excluded.rent_expense, salary_expense=excluded.salary_expense,
+                        marketing_expense=excluded.marketing_expense, utilities_expense=excluded.utilities_expense,
+                        other_expense=excluded.other_expense, note=excluded.note
+                """, (scope_user_id, month_year, channel, rent, salary, marketing, utilities, other, note)) if DB_TYPE != "mssql" else cursor.execute("""
+                    IF EXISTS (SELECT 1 FROM financial_user_expenses WHERE user_id=? AND month_year=? AND channel=?)
+                        UPDATE financial_user_expenses SET rent_expense=?, salary_expense=?, marketing_expense=?, utilities_expense=?, other_expense=?, note=? WHERE user_id=? AND month_year=? AND channel=?
+                    ELSE INSERT INTO financial_user_expenses (user_id, month_year, channel, rent_expense, salary_expense, marketing_expense, utilities_expense, other_expense, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (scope_user_id, month_year, channel, rent, salary, marketing, utilities, other, note, scope_user_id, month_year, channel, scope_user_id, month_year, channel, rent, salary, marketing, utilities, other, note))
+                conn.commit()
+                try:
+                    from backend.modules.audit.audit_service import AuditService
+                    AuditService.record_audit("UPDATE_USER_OPEX", "financial_user_expenses", f"{scope_user_id}:{month_year}:{channel}", user_id,
+                        user_email=user_email, user_role=user_role, ip_address=ip_address,
+                        new_value={"rent_expense": rent, "salary_expense": salary, "marketing_expense": marketing,
+                                   "utilities_expense": utilities, "other_expense": other, "note": note})
+                except Exception:
+                    pass
+                return True
+            finally:
+                conn.close()
+
         conn = get_db_connection()
         cursor = conn.cursor()
 

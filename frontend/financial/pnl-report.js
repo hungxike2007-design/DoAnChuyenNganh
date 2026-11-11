@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const monthSelect = document.getElementById('filter-month');
   const yearSelect = document.getElementById('filter-year');
   const channelSelect = document.getElementById('filter-channel');
+  const userSelect = document.getElementById('filter-user');
 
   if (monthSelect) monthSelect.value = '10';
   if (yearSelect) yearSelect.value = '2026';
@@ -31,6 +32,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   monthSelect?.addEventListener('change', loadPnlReport);
   yearSelect?.addEventListener('change', loadPnlReport);
   channelSelect?.addEventListener('change', loadPnlReport);
+  if (['admin', 'manager'].includes(role) && userSelect) {
+    userSelect.style.display = '';
+    try {
+      const usersRes = await apiRequest('/api/financial/pnl-users');
+      if (usersRes.success) {
+        usersRes.data.forEach(u => {
+          const option = document.createElement('option');
+          option.value = u.id;
+          option.textContent = `${u.full_name || u.email} (${u.email})`;
+          userSelect.appendChild(option);
+        });
+      }
+    } catch (err) {
+      showToast('Không thể tải danh sách người dùng: ' + err.message, 'error');
+    }
+    userSelect.addEventListener('change', loadPnlReport);
+  }
 
   // Lắng nghe thay đổi input trong Modal OPEX để tính tổng realtime
   ['input-rent', 'input-salary', 'input-marketing', 'input-utilities', 'input-other'].forEach(id => {
@@ -44,11 +62,13 @@ async function loadPnlReport() {
   const month = document.getElementById('filter-month')?.value || 10;
   const year = document.getElementById('filter-year')?.value || 2026;
   const channel = document.getElementById('filter-channel')?.value || 'All';
+  const viewUserId = document.getElementById('filter-user')?.value || '';
 
   // Cập nhật tiêu đề in ấn
   const printTitle = document.getElementById('print-period-title');
   if (printTitle) {
-    printTitle.textContent = `Kỳ kế toán: Tháng ${month} Năm ${year}${channel !== 'All' ? ' (Kênh ' + channel + ')' : ''}`;
+    const selectedUser = document.getElementById('filter-user')?.selectedOptions[0]?.textContent;
+    printTitle.textContent = `Kỳ kế toán: Tháng ${month} Năm ${year}${channel !== 'All' ? ' (Kênh ' + channel + ')' : ''}${viewUserId ? ' (' + selectedUser + ')' : ''}`;
   }
 
   const statementSubtitle = document.getElementById('statement-period-subtitle');
@@ -70,7 +90,7 @@ async function loadPnlReport() {
   }
 
   try {
-    const res = await apiRequest(`/api/financial/pnl-report?month=${month}&year=${year}&channel=${encodeURIComponent(channel)}`);
+    const res = await apiRequest(`/api/financial/pnl-report?month=${month}&year=${year}&channel=${encodeURIComponent(channel)}${viewUserId ? '&view_user_id=' + encodeURIComponent(viewUserId) : ''}`);
     if (res.success && res.data) {
       currentPnlData = res.data;
       renderPnlSummary(currentPnlData.summary);
@@ -309,7 +329,8 @@ function openOpexModal() {
   const year = document.getElementById('filter-year')?.value || 2026;
   
   const periodEl = document.getElementById('modal-opex-period');
-  if (periodEl) periodEl.textContent = `Tháng ${month}/${year}`;
+  const selectedUser = document.getElementById('filter-user')?.selectedOptions[0]?.textContent;
+  if (periodEl) periodEl.textContent = `Tháng ${month}/${year}${document.getElementById('filter-user')?.value ? ` · ${selectedUser}` : ' · Toàn hệ thống'}`;
 
   const raw = currentPnlData?.opex_raw || {};
   document.getElementById('input-rent').value = raw.rent || 0;
@@ -364,7 +385,8 @@ async function handleSaveOpex(e) {
         marketing_expense: marketing,
         utilities_expense: utilities,
         other_expense: other,
-        note: `Cập nhật chi phí vận hành tháng ${month}/${year}`
+        note: `Cập nhật chi phí vận hành tháng ${month}/${year}`,
+        scope_user_id: document.getElementById('filter-user')?.value || null
       })
     });
 
@@ -406,7 +428,7 @@ function exportPnlCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Bao_Cao_PnL_Thang_${p.month}_${p.year}.csv`;
+  a.download = `Bao_Cao_PnL_Thang_${p.month}_${p.year}${document.getElementById('filter-user')?.value ? '_user_' + document.getElementById('filter-user').value : ''}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

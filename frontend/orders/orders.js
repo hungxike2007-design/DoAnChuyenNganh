@@ -4,11 +4,23 @@
  * ==============================================================================
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   if (!requireAuth()) return;
 
   const user = getUser();
   const role = (user && user.role ? user.role : 'user').toLowerCase();
+  const canViewOrderProfit = ['admin', 'manager'].includes(role);
+
+  // Bind filters before any network request so a slow API cannot leave them inert.
+  const channelFilter = document.getElementById('filter-channel');
+  const statusFilter = document.getElementById('filter-status');
+  const reloadFilteredOrders = () => {
+    loadOrders();
+    if (canViewOrderProfit && document.getElementById('order-profit-tbody')) loadOrderProfit(true);
+  };
+  channelFilter?.addEventListener('change', reloadFilteredOrders);
+  statusFilter?.addEventListener('change', reloadFilteredOrders);
+
   if (role === 'user') {
     const pageTitle = document.querySelector('.page-title h1');
     if (pageTitle) pageTitle.textContent = 'Lịch Sử & Danh Sách Đơn Hàng';
@@ -18,23 +30,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (aiBtn) aiBtn.innerHTML = '<i class="fa-solid fa-comments"></i> AI Tư Vấn Mua Hàng';
   }
 
-  await loadOrders();
+  const profitSection = document.getElementById('order-profit-section');
+  if (profitSection) profitSection.style.display = 'block';
 
-  if (['admin', 'manager'].includes(role)) {
-    document.getElementById('order-profit-section').style.display = 'block';
-    document.getElementById('profit-cost-form').addEventListener('submit', saveProfitCost);
-    await loadOrderProfit(true);
+  if (canViewOrderProfit) {
+    const managerContent = document.getElementById('order-profit-manager-content');
+    if (managerContent) managerContent.style.display = 'block';
+    document.getElementById('profit-cost-form')?.addEventListener('submit', saveProfitCost);
+    if (document.getElementById('order-profit-tbody')) loadOrderProfit(true);
+  } else {
+    const accessMessage = document.getElementById('order-profit-access-message');
+    if (accessMessage) accessMessage.style.display = 'block';
+    const roleLabel = document.getElementById('order-profit-current-role');
+    if (roleLabel) roleLabel.textContent = role.toUpperCase();
   }
 
-  const channelFilter = document.getElementById('filter-channel');
-  const statusFilter = document.getElementById('filter-status');
-
-  if (channelFilter) {
-    channelFilter.addEventListener('change', () => { loadOrders(); if (['admin', 'manager'].includes(role)) loadOrderProfit(true); });
-  }
-  if (statusFilter) {
-    statusFilter.addEventListener('change', () => { loadOrders(); if (['admin', 'manager'].includes(role)) loadOrderProfit(true); });
-  }
+  loadOrders();
 
   // Bắt sự kiện submit form tạo đơn hàng
   const form = document.getElementById('create-order-form');
@@ -47,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadOrders() {
+  const requestId = ++ordersRequestId;
   const channel = document.getElementById('filter-channel') ? document.getElementById('filter-channel').value : 'All';
   const status = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'All';
   const tbody = document.getElementById('orders-tbody');
@@ -58,14 +70,18 @@ async function loadOrders() {
 
   try {
     const res = await apiRequest(`/api/revenue/orders?limit=100&channel=${encodeURIComponent(channel)}&status=${encodeURIComponent(status)}`);
+    if (requestId !== ordersRequestId) return;
     if (res.success && res.data) {
       if (countBadge) countBadge.textContent = `${res.data.length} Đơn Hàng`;
       renderOrdersTable(res.data);
     }
   } catch (err) {
+    if (requestId !== ordersRequestId) return;
     showToast('Lỗi khi tải danh sách đơn hàng: ' + err.message, 'error');
   }
 }
+
+let ordersRequestId = 0;
 
 function renderOrdersTable(orders) {
   const tbody = document.getElementById('orders-tbody');
@@ -134,6 +150,7 @@ function renderOrdersTable(orders) {
 }
 
 let orderProfitOffset = 0;
+let orderProfitRequestId = 0;
 let currentProfitOrderId = null;
 let editingProfitCostId = null;
 let currentProfitCosts = [];
@@ -143,6 +160,7 @@ function escapeProfitText(value) {
 }
 
 async function loadOrderProfit(reset = false) {
+  const requestId = ++orderProfitRequestId;
   if (reset) orderProfitOffset = 0;
   const params = new URLSearchParams({
     limit: '50', offset: String(orderProfitOffset),
@@ -157,6 +175,7 @@ async function loadOrderProfit(reset = false) {
   if (toDate) params.set('to_date', toDate);
   try {
     const res = await apiRequest(`/api/financial/order-profit?${params}`);
+    if (requestId !== orderProfitRequestId) return;
     const tbody = document.getElementById('order-profit-tbody');
     if (reset) tbody.innerHTML = '';
     const feeLabels = {unverified:'Chưa đối soát', entered:'Đã nhập phí', reconciled:'Đã đối soát'};
@@ -171,6 +190,7 @@ async function loadOrderProfit(reset = false) {
     orderProfitOffset += res.data.length;
     document.getElementById('order-profit-more').style.display = res.data.length === 50 ? 'inline-flex' : 'none';
   } catch (err) {
+    if (requestId !== orderProfitRequestId) return;
     showToast('Không tải được phân tích lợi nhuận đơn: ' + err.message, 'error');
   }
 }

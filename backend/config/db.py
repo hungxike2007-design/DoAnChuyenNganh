@@ -108,9 +108,9 @@ def get_db_connection():
             for srv in candidate_servers:
                 try:
                     if DB_TRUSTED.lower() in ("yes", "true", "1"):
-                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;"
+                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;APP=RevenueSystemAPI;"
                     else:
-                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=yes;"
+                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=yes;APP=RevenueSystemAPI;"
 
                     raw_conn = pyodbc.connect(conn_str, autocommit=False, timeout=3)
                     return DBConnectionWrapper(raw_conn)

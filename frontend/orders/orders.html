@@ -176,6 +176,12 @@
         </div>
 
         <section id="order-profit-section" class="glass-card data-table-card" style="display:none;margin-bottom:24px;padding:20px;">
+          <div id="order-profit-access-message" style="display:none;">
+            <h3 style="margin:0 0 8px;">Lợi nhuận đóng góp theo đơn</h3>
+            <p style="margin:0;color:var(--text-secondary);">Thông tin giá vốn và phí chỉ dành cho Admin/Manager. Vai trò của phiên hiện tại: <strong id="order-profit-current-role"></strong>.</p>
+            <p style="margin:8px 0 0;color:var(--text-muted);">Nếu bạn vừa đổi quyền trong SQL, hãy đăng xuất rồi đăng nhập lại để tải vai trò mới.</p>
+          </div>
+          <div id="order-profit-manager-content" style="display:none;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
             <div><h3 style="margin:0 0 5px;">Lợi nhuận đóng góp theo đơn</h3><small style="color:var(--text-muted);">Doanh thu thuần − giá vốn − phí trực tiếp. Chưa trừ OPEX tháng; phí vận chuyển thu từ khách chưa được lưu riêng nên chưa tính.</small></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -193,6 +199,7 @@
             </table>
           </div>
           <button id="order-profit-more" class="btn btn-secondary" type="button" style="display:none;margin-top:12px;" onclick="loadOrderProfit(false)">Tải thêm</button>
+          </div>
         </section>
 
         <!-- BẢNG DANH SÁCH ĐƠN HÀNG -->
@@ -386,6 +393,6 @@
 
   <script src="/frontend/assets/js/api.js"></script>
   <script src="/frontend/orders/import_helper.js"></script>
-  <script src="/frontend/orders/orders.js"></script>
+  <script src="/frontend/orders/orders.js?v=profit-and-filter-fix-20261111"></script>
 </body>
 </html>
