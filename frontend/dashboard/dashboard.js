@@ -10,6 +10,14 @@ let currentDays = 180;
 let inspectingUserId = null; // null if viewing own data or if Admin is in ranking mode
 let allRankingUsers = [];
 
+function updatePnlReportLink(userId = null) {
+  const href = `/frontend/financial/pnl-report.html${userId ? `?view_user_id=${encodeURIComponent(userId)}` : ''}`;
+  ['pnl-report-link', 'inspected-user-pnl-link'].forEach(id => {
+    const link = document.getElementById(id);
+    if (link) link.href = href;
+  });
+}
+
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!requireAuth()) return;
@@ -157,6 +165,8 @@ function filterUserRankings(query) {
 
 async function inspectUser(userId, userName, userEmail) {
   inspectingUserId = userId;
+  sessionStorage.setItem('pnl_view_user_id', userId);
+  updatePnlReportLink(userId);
   const rankingSection = document.getElementById('admin-user-ranking-section');
   const detailSection = document.getElementById('user-revenue-detail-section');
   const inspectingBanner = document.getElementById('inspecting-banner');
@@ -178,6 +188,8 @@ async function inspectUser(userId, userName, userEmail) {
 
 function backToUserRanking() {
   inspectingUserId = null;
+  sessionStorage.removeItem('pnl_view_user_id');
+  updatePnlReportLink();
   const rankingSection = document.getElementById('admin-user-ranking-section');
   const detailSection = document.getElementById('user-revenue-detail-section');
   const inspectingBanner = document.getElementById('inspecting-banner');

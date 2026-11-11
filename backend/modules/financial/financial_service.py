@@ -290,9 +290,9 @@ class FinancialService:
 
                 # Query doanh thu đơn hoàn thành
                 if DB_TYPE == "mssql":
-                    date_cond = "FORMAT(o.created_at, 'yyyy-MM') = ?"
+                    date_cond = "FORMAT(o.order_date, 'yyyy-MM') = ?"
                 else:
-                    date_cond = "strftime('%Y-%m', o.created_at) = ?"
+                    date_cond = "strftime('%Y-%m', o.order_date) = ?"
 
                 query_orders = f"""
                     SELECT 

@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const yearSelect = document.getElementById('filter-year');
   const channelSelect = document.getElementById('filter-channel');
   const userSelect = document.getElementById('filter-user');
+  const requestedUserId = new URLSearchParams(window.location.search).get('view_user_id') || sessionStorage.getItem('pnl_view_user_id');
 
   if (monthSelect) monthSelect.value = '10';
   if (yearSelect) yearSelect.value = '2026';
@@ -43,6 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           option.textContent = `${u.full_name || u.email} (${u.email})`;
           userSelect.appendChild(option);
         });
+        if (requestedUserId && usersRes.data.some(u => String(u.id) === requestedUserId)) {
+          userSelect.value = requestedUserId;
+        }
       }
     } catch (err) {
       showToast('Không thể tải danh sách người dùng: ' + err.message, 'error');
