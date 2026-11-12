@@ -127,9 +127,76 @@ def get_db_connection():
     # Dự phòng SQLite nếu DB_TYPE = sqlite
     import sqlite3
     db_path = ROOT_DIR / os.getenv("DATABASE_PATH", "data/revenue_system.sqlite")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def init_db():
+    """Create the local SQLite schema without touching existing records."""
+    if DB_TYPE != "sqlite":
+        return
+    conn = get_db_connection()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL, role TEXT DEFAULT 'user', avatar_url TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, otp_code TEXT NOT NULL,
+            expires_at TEXT NOT NULL, is_used INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, description TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, sku TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+            category_id INTEGER, cost_price REAL NOT NULL, selling_price REAL NOT NULL,
+            stock_quantity INTEGER NOT NULL DEFAULT 0, image_url TEXT DEFAULT '', is_active INTEGER DEFAULT 1,
+            user_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
+            phone TEXT, city TEXT, segment TEXT DEFAULT 'New', total_spent REAL DEFAULT 0,
+            orders_count INTEGER DEFAULT 0, last_order_date TEXT, user_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, order_code TEXT UNIQUE NOT NULL, customer_id INTEGER,
+            channel TEXT NOT NULL, total_amount REAL NOT NULL, discount_amount REAL DEFAULT 0,
+            net_amount REAL NOT NULL, payment_method TEXT DEFAULT 'COD', status TEXT DEFAULT 'completed',
+            order_date TEXT DEFAULT CURRENT_TIMESTAMP, created_at TEXT DEFAULT CURRENT_TIMESTAMP, user_id INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL, product_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL, unit_price REAL NOT NULL, cost_price REAL NOT NULL, total_price REAL NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS financial_expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, month_year TEXT NOT NULL, channel TEXT DEFAULT 'All',
+            rent_expense REAL DEFAULT 0, salary_expense REAL DEFAULT 0, marketing_expense REAL DEFAULT 0,
+            utilities_expense REAL DEFAULT 0, other_expense REAL DEFAULT 0, note TEXT DEFAULT '',
+            updated_by INTEGER, updated_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(month_year, channel)
+        );
+        CREATE TABLE IF NOT EXISTS user_product_prices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, product_id INTEGER NOT NULL,
+            custom_price REAL NOT NULL, note TEXT DEFAULT '', updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, product_id)
+        );
+        CREATE TABLE IF NOT EXISTS ai_strategy_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, strategy_type TEXT NOT NULL,
+            user_prompt TEXT, ai_response TEXT NOT NULL, metrics_context TEXT, created_by INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS ai_chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, sender TEXT NOT NULL,
+            message TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    conn.commit()
+    conn.close()
 
 
 def test_connection():

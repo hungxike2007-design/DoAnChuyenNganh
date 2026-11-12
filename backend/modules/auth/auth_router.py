@@ -11,7 +11,7 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel
 from typing import Optional
 try:
@@ -185,7 +185,7 @@ def get_all_users(admin: dict = Depends(require_roles("admin"))):
 
 
 @router.put("/users/{user_id}/role")
-def update_user_role(user_id: int, req: UpdateRoleRequest, admin: dict = Depends(require_roles("admin"))):
+def update_user_role(user_id: int, req: UpdateRoleRequest, request: Request, admin: dict = Depends(require_roles("admin"))):
     """Admin thay đổi phân quyền của một tài khoản."""
     if req.role not in ["admin", "manager", "sales", "user"]:
         raise HTTPException(status_code=400, detail="Vai trò không hợp lệ! Chỉ cho phép: admin, manager, sales, user.")
@@ -193,8 +193,16 @@ def update_user_role(user_id: int, req: UpdateRoleRequest, admin: dict = Depends
     from config.db import get_db_connection
     conn = get_db_connection()
     cursor = conn.cursor()
+    cursor.execute("SELECT role, email FROM users WHERE id = ?", (user_id,))
+    target = cursor.fetchone()
+    if not target:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Không tìm thấy tài khoản.")
     cursor.execute("UPDATE users SET role = ? WHERE id = ?", (req.role, user_id))
     conn.commit()
     conn.close()
+    from backend.modules.audit.audit_service import AuditService
+    AuditService.record_audit("CHANGE_ROLE", "users", str(user_id), int(admin["sub"]), admin.get("email"), admin.get("role"),
+        {"role": target["role"]}, {"role": req.role}, request.client.host if request.client else "", request.headers.get("user-agent", ""))
     return {"success": True, "message": f"Đã cập nhật vai trò của tài khoản thành '{req.role}'!"}
 

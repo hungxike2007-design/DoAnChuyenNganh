@@ -227,3 +227,7 @@ Hệ thống đã thiết lập sẵn 3 tài khoản đại diện cho các vai 
 - File `.gitignore` đã chặn toàn bộ file môi trường `.env`, file cơ sở dữ liệu `*.sqlite`, cache `__pycache__` và các file tạm.
 - Không bao giờ commit API Key thật lên repository.
 - File cấu hình [`backend/config/ai_config.py`](file:///c:/Users/Public/HeThongDACN/backend/config/ai_config.py) và [`backend/config/db.py`](file:///c:/Users/Public/HeThongDACN/backend/config/db.py) được thiết kế theo nguyên tắc an toàn, tự động nạp từ biến môi trường hoặc chuyển sang chế độ dự phòng an toàn khi thiếu cấu hình.
+
+## Tests and deployment
+
+See [DEVOPS.md](DEVOPS.md) for pytest, Docker Compose, and the non-destructive SQL Server audit migration.

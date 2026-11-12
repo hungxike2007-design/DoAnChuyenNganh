@@ -107,9 +107,9 @@ def get_db_connection():
             for srv in candidate_servers:
                 try:
                     if DB_TRUSTED.lower() in ("yes", "true", "1"):
-                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;"
+                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;APP=RevenueSystemAPI;"
                     else:
-                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=yes;"
+                        conn_str = f"Driver={{{driver}}};Server={srv};Database={DB_DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=yes;APP=RevenueSystemAPI;"
 
                     raw_conn = pyodbc.connect(conn_str, autocommit=False, timeout=3)
                     return DBConnectionWrapper(raw_conn)
@@ -127,6 +127,7 @@ def get_db_connection():
     # Dự phòng SQLite nếu DB_TYPE = sqlite
     import sqlite3
     db_path = ROOT_DIR / os.getenv("DATABASE_PATH", "data/revenue_system.sqlite")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     return conn

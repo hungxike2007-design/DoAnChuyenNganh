@@ -316,13 +316,19 @@ class FinancialService:
         utilities: float = 0.0,
         other: float = 0.0,
         note: str = "",
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        user_email: str = "",
+        user_role: str = "",
+        ip_address: str = "",
+        user_agent: str = ""
     ) -> bool:
         """Lưu hoặc cập nhật chi phí vận hành (OPEX) cho một tháng cụ thể."""
         conn = get_db_connection()
         cursor = conn.cursor()
 
         try:
+            cursor.execute("SELECT rent_expense, salary_expense, marketing_expense, utilities_expense, other_expense FROM financial_expenses WHERE month_year = ? AND channel = ?", (month_year, channel))
+            old_expenses = cursor.fetchone()
             if DB_TYPE == "mssql":
                 upsert_sql = """
                     IF EXISTS (SELECT 1 FROM financial_expenses WHERE month_year = ? AND channel = ?)
@@ -361,6 +367,11 @@ class FinancialService:
                 cursor.execute(upsert_sql, (month_year, channel, rent, salary, marketing, utilities, other, note, user_id))
 
             conn.commit()
+            from backend.modules.audit.audit_service import AuditService
+            AuditService.record_audit("UPDATE_OPEX", "financial_expenses", f"{month_year}:{channel}", user_id,
+                user_email, user_role, dict(old_expenses) if old_expenses else None,
+                {"rent": rent, "salary": salary, "marketing": marketing, "utilities": utilities, "other": other, "note": note},
+                ip_address, user_agent)
             return True
         finally:
             conn.close()
