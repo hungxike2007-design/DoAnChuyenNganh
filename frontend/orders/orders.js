@@ -5,6 +5,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Remove the panel if an older cached orders page still contains it.
+  document.getElementById('order-profit-section')?.remove();
   if (!requireAuth()) return;
 
   const user = getUser();

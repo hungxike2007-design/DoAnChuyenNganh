@@ -44,6 +44,7 @@ from backend.modules.products.product_router import router as product_router
 from backend.modules.ai.planner_router import router as planner_router
 from backend.modules.orders.import_router import router as import_router
 from backend.modules.financial.financial_router import router as financial_router
+from backend.modules.audit.audit_router import router as audit_router
 
 
 @asynccontextmanager
@@ -82,6 +83,7 @@ app.include_router(product_router)
 app.include_router(planner_router)
 app.include_router(import_router)
 app.include_router(financial_router)
+app.include_router(audit_router)
 
 # Phục vụ thư mục frontend (Cấu trúc phân hệ mới)
 frontend_dir = BASE_DIR / "frontend"

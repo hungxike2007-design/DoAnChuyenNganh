@@ -1,0 +1,16 @@
+services:
+  web-app:
+    build: .
+    container_name: revenue-system
+    ports:
+      - "8000:8000"
+    environment:
+      DB_TYPE: sqlite
+      DATABASE_PATH: data/revenue_system.sqlite
+      HOST: 0.0.0.0
+      PORT: 8000
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-change-before-deployment}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -10,7 +10,7 @@ Chức năng:
 ==============================================================================
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel, Field
 from typing import Optional
 try:
@@ -136,6 +136,7 @@ def create_product(req: CreateProductRequest, user: dict = Depends(get_current_u
 @router.post("/custom-price")
 def set_custom_price(
     req: SetCustomPriceRequest,
+    request: Request,
     admin: dict = Depends(require_roles("admin", "manager"))
 ):
     """Thiết lập mức giá bán riêng cho một tài khoản cụ thể đối với một sản phẩm."""
@@ -157,7 +158,7 @@ def set_custom_price(
             warning = f"Cảnh báo: Mức giá riêng ({req.customPrice:,.0f} đ) thấp hơn giá vốn ({cost_price:,.0f} đ)!"
 
         # Upsert vào bảng user_product_prices
-        cursor.execute("SELECT id FROM user_product_prices WHERE user_id = ? AND product_id = ?", (req.userId, req.productId))
+        cursor.execute("SELECT id, custom_price FROM user_product_prices WHERE user_id = ? AND product_id = ?", (req.userId, req.productId))
         existing = cursor.fetchone()
         if existing:
             cursor.execute("""
@@ -172,6 +173,11 @@ def set_custom_price(
             """, (req.userId, req.productId, req.customPrice, req.note or ""))
 
         conn.commit()
+        from backend.modules.audit.audit_service import AuditService
+        AuditService.record_audit("UPDATE_PRICE", "user_product_prices", f"user:{req.userId},product:{req.productId}",
+            int(admin["sub"]), admin.get("email"), admin.get("role"),
+            {"price": float(existing["custom_price"])} if existing else None, {"price": req.customPrice},
+            request.client.host if request.client else "", request.headers.get("user-agent", ""))
         return {
             "success": True,
             "message": f"Đã thiết lập mức giá riêng {req.customPrice:,.0f} đ cho sản phẩm '{prod['name']}'!",

@@ -9,7 +9,7 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, Query, Depends, HTTPException, status
+from fastapi import APIRouter, Query, Depends, HTTPException, status, Request
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -75,6 +75,7 @@ def get_pnl_report(
 @router.post("/expenses")
 def update_expenses(
     req: ExpenseUpdateRequest,
+    request: Request,
     current_user: dict = Depends(require_roles("admin", "manager"))
 ):
     """Cập nhật chi phí vận hành (OPEX) cho một kỳ kế toán (Chỉ Admin và Manager)."""
@@ -95,7 +96,9 @@ def update_expenses(
             utilities=req.utilities_expense,
             other=req.other_expense,
             note=req.note or "",
-            user_id=user_id
+            user_id=user_id,
+            user_email=current_user.get("email", ""), user_role=current_user.get("role", ""),
+            ip_address=request.client.host if request.client else "", user_agent=request.headers.get("user-agent", "")
         )
         return {"success": ok, "message": f"Đã lưu chi phí vận hành cho kỳ {req.month_year} thành công!"}
     except Exception as e:

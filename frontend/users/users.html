@@ -152,6 +152,11 @@
       </header>
 
       <div class="content-body">
+
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn btn-primary" id="tab-users" type="button" onclick="switchAdminTab('users')">Tài khoản</button>
+          <button class="btn btn-secondary" id="tab-audit" type="button" onclick="switchAdminTab('audit')">Nhật ký kiểm toán</button>
+        </div>
         
         <!-- THẺ MÔ TẢ PHÂN QUYỀN HỆ THỐNG -->
         <div class="glass-card" style="padding:22px; margin-bottom:24px; border-left:4px solid var(--accent-primary);">
@@ -180,7 +185,7 @@
         </div>
 
         <!-- BẢNG DANH SÁCH TÀI KHOẢN -->
-        <div class="glass-card data-table-card">
+        <div id="users-panel" class="glass-card data-table-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
             <h3><i class="fa-solid fa-users" style="color:var(--accent-primary); margin-right:8px;"></i> Danh Sách Tài Khoản Trong CSDL SQL Server</h3>
             <span class="badge-tag badge-success" id="users-count-badge">Đang tải...</span>
@@ -206,13 +211,43 @@
           </div>
         </div>
 
+        <section id="audit-panel" class="glass-card data-table-card" style="display:none;padding:22px;">
+          <h3 style="margin:0 0 16px;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-primary);"></i> Nhật ký kiểm toán</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+            <select id="audit-action" aria-label="Lọc hành động">
+              <option value="ALL">Tất cả hành động</option>
+              <option value="UPDATE_PRICE">Sửa giá B2B</option>
+              <option value="UPDATE_OPEX">Sửa chi phí P&amp;L</option>
+              <option value="CHANGE_ROLE">Phân quyền</option>
+              <option value="IMPORT_EXCEL">Import Excel</option>
+            </select>
+            <input id="audit-search" type="search" placeholder="Email người thực hiện" aria-label="Tìm email người thực hiện">
+            <input id="audit-from" type="date" aria-label="Từ ngày">
+            <input id="audit-to" type="date" aria-label="Đến ngày">
+            <button class="btn btn-primary" type="button" onclick="loadAuditLogs()">Lọc</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="custom-table">
+              <thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
+              <tbody id="audit-tbody"><tr><td colspan="5">Chưa tải nhật ký.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
 
   <div id="toast-container"></div>
 
+  <div id="audit-detail-modal" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+    <div class="glass-card" style="background:#fff;width:min(760px,100%);max-height:85vh;overflow:auto;padding:22px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><h3 id="audit-detail-title">Chi tiết nhật ký</h3><button class="btn btn-secondary" type="button" onclick="closeAuditDetail()" aria-label="Đóng">Đóng</button></div>
+      <div id="audit-detail-body"></div>
+    </div>
+  </div>
+
   <script src="/frontend/assets/js/api.js"></script>
-  <script src="/frontend/users/users.js"></script>
+  <script src="/frontend/users/users.js?v=audit-20261112"></script>
 </body>
 </html>

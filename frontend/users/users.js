@@ -101,3 +101,78 @@ async function updateUserRole(userId, newRole) {
     showToast('Lỗi cập nhật vai trò: ' + err.message, 'error');
   }
 }
+
+function switchAdminTab(tab) {
+  const showingAudit = tab === 'audit';
+  document.getElementById('users-panel').style.display = showingAudit ? 'none' : '';
+  document.getElementById('audit-panel').style.display = showingAudit ? '' : 'none';
+  document.getElementById('tab-users').className = `btn ${showingAudit ? 'btn-secondary' : 'btn-primary'}`;
+  document.getElementById('tab-audit').className = `btn ${showingAudit ? 'btn-primary' : 'btn-secondary'}`;
+  if (showingAudit) loadAuditLogs();
+}
+
+function auditEscape(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+async function loadAuditLogs() {
+  const tbody = document.getElementById('audit-tbody');
+  const params = new URLSearchParams({ limit: '100' });
+  const action = document.getElementById('audit-action').value;
+  const search = document.getElementById('audit-search').value.trim();
+  const fromDate = document.getElementById('audit-from').value;
+  const toDate = document.getElementById('audit-to').value;
+  if (action !== 'ALL') params.set('action', action);
+  if (search) params.set('search', search);
+  if (fromDate) params.set('from_date', fromDate);
+  if (toDate) params.set('to_date', toDate);
+
+  tbody.innerHTML = '<tr><td colspan="5">Đang tải nhật ký...</td></tr>';
+  try {
+    const res = await apiRequest(`/api/audit/logs?${params}`);
+    const actions = { UPDATE_PRICE: 'Sửa giá B2B', UPDATE_OPEX: 'Sửa chi phí P&L', CHANGE_ROLE: 'Phân quyền', IMPORT_EXCEL: 'Import Excel' };
+    if (!res.success || !res.data.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;">Không có nhật ký phù hợp.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.data.map(log => `
+      <tr>
+        <td>${auditEscape(new Date(log.created_at).toLocaleString('vi-VN'))}</td>
+        <td>${auditEscape(log.user_email)} <small>${auditEscape(log.user_role)}</small></td>
+        <td>${auditEscape(actions[log.action] || log.action)}</td>
+        <td>${auditEscape(log.target_table)}: ${auditEscape(log.target_id)}</td>
+        <td><button class="btn btn-secondary" type="button" onclick="openAuditDetail(${Number(log.id)})">Xem chi tiết</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#dc2626;">${auditEscape(err.message)}</td></tr>`;
+  }
+}
+
+async function openAuditDetail(id) {
+  try {
+    const res = await apiRequest(`/api/audit/logs/${id}`);
+    if (!res.success) return;
+    const log = res.data;
+    const pretty = value => {
+      try { return JSON.stringify(value ? JSON.parse(value) : null, null, 2); }
+      catch { return value || '—'; }
+    };
+    document.getElementById('audit-detail-body').innerHTML = `
+      <p><strong>${auditEscape(log.action)}</strong> · ${auditEscape(log.target_table)}: ${auditEscape(log.target_id)}</p>
+      <p>Người thực hiện: ${auditEscape(log.user_email)} (${auditEscape(log.user_role)})<br>Thời gian: ${auditEscape(new Date(log.created_at).toLocaleString('vi-VN'))}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <section><h4>Giá trị cũ</h4><pre style="white-space:pre-wrap;background:#fff1f2;padding:12px;">${auditEscape(pretty(log.old_value))}</pre></section>
+        <section><h4>Giá trị mới</h4><pre style="white-space:pre-wrap;background:#f0fdf4;padding:12px;">${auditEscape(pretty(log.new_value))}</pre></section>
+      </div>
+      <p>IP: ${auditEscape(log.ip_address || '—')}<br>Thiết bị: ${auditEscape(log.user_agent || '—')}</p>`;
+    document.getElementById('audit-detail-modal').style.display = 'flex';
+  } catch (err) {
+    showToast('Không thể tải chi tiết audit: ' + err.message, 'error');
+  }
+}
+
+function closeAuditDetail() {
+  document.getElementById('audit-detail-modal').style.display = 'none';
+}
