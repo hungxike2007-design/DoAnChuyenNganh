@@ -75,9 +75,9 @@ def get_pnl_report(
 @router.post("/expenses")
 def update_expenses(
     req: ExpenseUpdateRequest,
-    current_user: dict = Depends(require_roles("admin", "manager"))
+    current_user: dict = Depends(require_roles("admin", "manager", "sales", "user"))
 ):
-    """Cập nhật chi phí vận hành (OPEX) cho một kỳ kế toán (Chỉ Admin và Manager)."""
+    """Cập nhật chi phí vận hành (OPEX) cho một kỳ kế toán (Mọi vai trò: Admin, Manager, Sales, User)."""
     user_id = current_user.get("user_id") or current_user.get("sub")
     if user_id is not None:
         try:

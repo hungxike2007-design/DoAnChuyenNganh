@@ -146,6 +146,12 @@ def set_custom_price(
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        # Kiểm tra người dùng tồn tại
+        cursor.execute("SELECT id FROM users WHERE id = ?", (req.userId,))
+        user_row = cursor.fetchone()
+        if not user_row:
+            raise HTTPException(status_code=404, detail="Không tìm thấy tài khoản người dùng tương ứng!")
+
         # Kiểm tra sản phẩm và giá vốn để cảnh báo nếu bán dưới giá vốn
         cursor.execute("SELECT cost_price, selling_price, name FROM products WHERE id = ?", (req.productId,))
         prod = cursor.fetchone()

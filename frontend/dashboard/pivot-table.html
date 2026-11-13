@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phân Tích Doanh Thu Đa Chiều (Pivot Matrix) | Decision Support System</title>
+  <link rel="stylesheet" href="/frontend/assets/css/main.css">
+  <link rel="stylesheet" href="/frontend/dashboard/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    (function() {
+      const token = localStorage.getItem('dacn_token');
+      const userStr = localStorage.getItem('dacn_user');
+      if (!token || !userStr) {
+        window.location.replace('/frontend/auth/login.html');
+        return;
+      }
+      try {
+        JSON.parse(userStr);
+      } catch (e) {
+        window.location.replace('/frontend/auth/login.html');
+      }
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Styling riêng cho Phân Hệ Pivot Table & Heatmap */
+    .pivot-controls-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .pivot-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .pivot-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pivot-form-group label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pivot-select {
+      height: 42px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 13.5px;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .pivot-select:focus {
+      border-color: #0284c7;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .pivot-actions-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .pivot-matrix-wrapper {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 24px;
+    }
+    .pivot-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 700px;
+    }
+    .pivot-table th {
+      background: #f8fafc;
+      color: #1e293b;
+      font-weight: 700;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .pivot-table th.pivot-th-corner {
+      background: #f1f5f9;
+      color: #0f172a;
+      text-align: left;
+      font-weight: 800;
+      font-size: 13.5px;
+    }
+    .pivot-table th.pivot-th-total {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 800;
+    }
+    .pivot-table td {
+      padding: 11px 14px;
+      border: 1px solid #e2e8f0;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: #0f172a;
+      transition: background 0.15s;
+    }
+    .pivot-table td.pivot-td-header {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .pivot-table td.pivot-td-total {
+      background: #f0f9ff;
+      color: #0284c7;
+      font-weight: 800;
+    }
+    .pivot-table tr.pivot-tr-grand-total td {
+      background: #e0f2fe !important;
+      color: #0369a1 !important;
+      font-weight: 900;
+      font-size: 13.5px;
+      border-top: 2px solid #38bdf8;
+    }
+    .pivot-ai-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+    }
+    .pivot-ai-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .pivot-ai-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #15803d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pivot-ai-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    .pivot-ai-content {
+      color: #1e293b;
+      line-height: 1.65;
+      font-size: 13.5px;
+    }
+    .pivot-ai-content h1, .pivot-ai-content h2, .pivot-ai-content h3, .pivot-ai-content h4 {
+      color: #0f172a;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-size: 14.5px;
+    }
+    .pivot-ai-content ul, .pivot-ai-content ol {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    .pivot-ai-content li {
+      margin-bottom: 4px;
+    }
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 10px;
+    }
+    .legend-bar {
+      width: 140px;
+      height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(to right, #f8fafc, #bae6fd, #0284c7);
+      border: 1px solid #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- SIDEBAR ĐIỀU HƯỚNG -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <div class="logo-text">
+          <h2>REVENUE SYSTEM</h2>
+          <span>Business Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- NHÓM 1: BÁO CÁO & THỐNG KÊ -->
+        <div class="nav-group" id="nav-group-analytics">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-chart-pie"></i> Báo Cáo & Thống Kê
+          </div>
+          <a href="/frontend/dashboard/dashboard.html" class="nav-link">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tổng Quan Doanh Thu</span>
+          </a>
+          <a href="/frontend/dashboard/pivot-table.html" class="nav-link active">
+            <i class="fa-solid fa-table-cells-large"></i>
+            <span>Phân Tích Đa Chiều</span>
+            <span class="badge-tag badge-pro" style="background:#0284c7; color:#fff;">PIVOT</span>
+          </a>
+          <a href="/frontend/customers/customer-rfm.html" class="nav-link">
+            <i class="fa-solid fa-users-viewfinder"></i>
+            <span>Phân Khúc Khách Hàng</span>
+          </a>
+          <a href="/frontend/financial/pnl-report.html" class="nav-link">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            <span>Báo Cáo P&L (Tài Chính)</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 2: VẬN HÀNH & BÁN HÀNG -->
+        <div class="nav-group" id="nav-group-operations">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-cart-shopping"></i> Vận Hành & Bán Hàng
+          </div>
+          <a href="/frontend/orders/orders.html" class="nav-link">
+            <i class="fa-solid fa-cart-flatbed"></i>
+            <span>Quản Lý Đơn Hàng</span>
+          </a>
+          <a href="/frontend/products/products.html" class="nav-link">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Kho Hàng & Sản Phẩm</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 3: TRÍ TUỆ NHÂN TẠO (AI) -->
+        <div class="nav-group" id="nav-group-ai">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Trí Tuệ Nhân Tạo (AI)
+          </div>
+          <a href="/frontend/ai/revenue-planner.html" class="nav-link">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Lập Kế Hoạch Doanh Thu</span>
+            <span class="badge-tag badge-dss">DSS</span>
+          </a>
+          <a href="/frontend/ai/ai-strategy.html" class="nav-link">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Chiến Lược Giá & Combo</span>
+            <span class="badge-tag badge-pro">PRO</span>
+          </a>
+          <a href="/frontend/ai/marketing-studio.html" class="nav-link">
+            <i class="fa-solid fa-clapperboard"></i>
+            <span>AI Marketing Studio</span>
+            <span class="badge-tag badge-pro" style="background:#818cf8; color:#fff;">STUDIO</span>
+          </a>
+          <a href="/frontend/ai/ai-copilot.html" class="nav-link">
+            <i class="fa-solid fa-comments"></i>
+            <span>Trợ Lý AI Doanh Nghiệp</span>
+            <span class="badge-tag badge-chat">COPILOT</span>
+          </a>
+        </div>
+
+        <!-- NHÓM 4: CẤU HÌNH HỆ THỐNG (CHỈ ADMIN) -->
+        <div class="nav-group" id="nav-group-admin" style="display:none;">
+          <div class="nav-section-title">
+            <i class="fa-solid fa-gear"></i> Cấu Hình Hệ Thống
+          </div>
+          <a href="/frontend/users/users.html" class="nav-link">
+            <i class="fa-solid fa-users-gear"></i>
+            <span>Quản Trị Người Dùng</span>
+            <span class="badge-tag badge-admin">ADMIN</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="avatar-circle" id="user-avatar-initials">U</div>
+          <div class="user-meta">
+            <span class="name" id="user-name">Đang tải...</span>
+            <span class="role" id="user-role">...</span>
+          </div>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Đăng xuất">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- KHU VỰC NỘI DUNG CHÍNH (MAIN WRAPPER ĐẨY SANG PHẢI 260px) -->
+    <main class="main-wrapper">
+      <!-- HEADER TRANG -->
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Phân Tích Doanh Thu Đa Chiều (Pivot Matrix)</h1>
+          <p>Hệ thống hỗ trợ ra quyết định (DSS) - Tùy biến ghép nối đa chiều dữ liệu & Heatmap trực quan</p>
+        </div>
+        <div class="nav-actions">
+          <button id="btn-export-csv" class="btn btn-secondary" style="display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-file-csv"></i> Xuất File CSV
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+        
+        <!-- BẢNG ĐIỀU KHIỂN XOAY MA TRẬN PIVOT -->
+        <section class="pivot-controls-card">
+          <div class="pivot-form-grid">
+            
+            <div class="pivot-form-group">
+              <label for="select-row-dim"><i class="fa-solid fa-arrows-up-down text-primary"></i> Trục Dòng (Rows):</label>
+              <select id="select-row-dim" class="pivot-select">
+                <option value="channel" selected>Kênh Bán Hàng</option>
+                <option value="category">Danh Mục Sản Phẩm</option>
+                <option value="city">Tỉnh / Thành Phố</option>
+                <option value="month_period">Thời Gian (Tháng)</option>
+              </select>
+            </div>
+
+            <div class="pivot-form-group">
+              <label for="select-col-dim"><i class="fa-solid fa-arrows-left-right text-info"></i> Trục Cột (Columns):</label>
+              <select id="select-col-dim" class="pivot-select">
+                <option value="category" selected>Danh Mục Sản Phẩm</option>
+                <option value="channel">Kênh Bán Hàng</option>
+                <option value="city">Tỉnh / Thành Phố</option>
+                <option value="month_period">Thời Gian (Tháng)</option>
+              </select>
+            </div>
+
+            <div class="pivot-form-group">
+              <label for="select-metric"><i class="fa-solid fa-calculator text-warning"></i> Chỉ Số Tính Toán:</label>
+              <select id="select-metric" class="pivot-select">
+                <option value="total_revenue" selected>Tổng Doanh Thu (₫)</option>
+                <option value="gross_profit">Lợi Nhuận Gộp (₫)</option>
+                <option value="order_count">Số Lượng Đơn Hàng (đơn)</option>
+              </select>
+            </div>
+
+            <div class="pivot-form-group">
+              <label for="select-days"><i class="fa-solid fa-calendar-days text-secondary"></i> Khoảng Thời Gian:</label>
+              <select id="select-days" class="pivot-select">
+                <option value="30">30 Ngày Gần Nhất</option>
+                <option value="60">60 Ngày Gần Nhất</option>
+                <option value="90" selected>90 Ngày (Quý Gần Nhất)</option>
+                <option value="180">180 Ngày (6 Tháng)</option>
+                <option value="365">365 Ngày (1 Năm Qua)</option>
+              </select>
+            </div>
+
+            <div class="pivot-form-group">
+              <label for="select-status"><i class="fa-solid fa-filter text-muted"></i> Trạng Thái Đơn:</label>
+              <select id="select-status" class="pivot-select">
+                <option value="completed" selected>Chỉ Đơn Hoàn Thành</option>
+                <option value="all">Tất Cả Trạng Thái</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="pivot-actions-row">
+            <button id="btn-generate-pivot" class="btn btn-primary" style="display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-rotate"></i> Tạo Ma Trận Pivot
+            </button>
+            <button id="btn-ai-insight" class="btn btn-ai" style="display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Gemini AI Đọc Vị Ma Trận
+            </button>
+            <div class="heatmap-legend" style="margin-left:auto;">
+              <span>Mức độ nhiệt:</span>
+              <div class="legend-bar"></div>
+              <span>Cao</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- KẾT QUẢ AI INSIGHT (NẾU ĐÃ GỌI) -->
+        <section id="ai-insight-wrapper" class="pivot-ai-card" style="display:none;">
+          <div class="pivot-ai-header">
+            <div class="pivot-ai-title">
+              <i class="fa-solid fa-brain"></i> Gemini AI Chiến Lược: Phát Hiện Đột Phá Từ Ma Trận
+            </div>
+            <span class="pivot-ai-badge" id="ai-model-badge">Gemini AI</span>
+          </div>
+          <div id="ai-insight-content" class="pivot-ai-content">
+            <!-- Render Markdown từ AI -->
+          </div>
+        </section>
+
+        <!-- BẢNG MA TRẬN NHIỆT (HEATMAP TABLE) -->
+        <section class="pivot-matrix-wrapper">
+          <div id="pivot-table-container">
+            <div style="padding:40px; text-align:center; color:#64748b;">
+              <i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom:12px; color:#0284c7;"></i>
+              <p>Đang tổng hợp ma trận phân tích dữ liệu...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- BIỂU ĐỒ TRỰC QUAN HÓA SO SÁNH (CHART.JS) -->
+        <section class="glass-card" style="padding:22px; margin-bottom:24px;">
+          <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-chart-column text-primary"></i> Biểu Đồ Trực Quan Hóa Tương Quan
+          </h3>
+          <div style="position:relative; height:360px; width:100%;">
+            <canvas id="pivotBarChart"></canvas>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/frontend/assets/js/api.js"></script>
+  <script src="/frontend/dashboard/pivot-table.js"></script>
+</body>
+</html>
+

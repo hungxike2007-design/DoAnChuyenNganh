@@ -14,11 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = getUser();
   const role = (user && user.role ? user.role : 'user').toLowerCase();
 
-  // Chỉ Admin và Manager mới có quyền cập nhật chi phí OPEX
-  if (role === 'sales' || role === 'user') {
-    const editOpexBtn = document.getElementById('btn-edit-opex');
-    if (editOpexBtn) editOpexBtn.style.display = 'none';
-  }
+  // Mọi vai trò (Admin, Manager, Sales, User) đều có quyền cập nhật chi phí OPEX để tính lợi nhuận ròng
+  const editOpexBtn = document.getElementById('btn-edit-opex');
+  if (editOpexBtn) editOpexBtn.style.display = 'flex';
 
   // Khởi tạo các bộ lọc với giá trị hiện tại (mặc định Tháng 10/2026 là kỳ có dữ liệu đơn hàng)
   const monthSelect = document.getElementById('filter-month');
