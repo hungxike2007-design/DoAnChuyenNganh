@@ -71,9 +71,10 @@ class AuthService:
             conn.close()
             raise ValueError("Email này đã được sử dụng. Vui lòng chọn email khác.")
 
-        # Đăng ký tài khoản mặc định là 'user' (nhân viên bán hàng / người dùng thông thường)
-        # Chỉ Admin mới có quyền gán quyền manager hoặc admin trong hệ thống
-        assigned_role = role if role in ["admin", "manager", "sales", "user"] else "user"
+        # BẢO MẬT (OWASP A01): Đăng ký công khai luôn luôn cố định quyền 'user'
+        # Ngăn chặn lỗ hổng leo quyền (Privilege Escalation) gán role admin/manager tùy tiện.
+        # Nâng quyền chỉ được thực hiện bởi Admin qua endpoint quản trị /api/auth/users/{id}/role.
+        assigned_role = "user"
         pw_hash = hash_password(password)
 
         cursor.execute(

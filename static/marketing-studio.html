@@ -9,9 +9,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script>
     (function() {
-      const token = localStorage.getItem('dacn_token');
       const userStr = localStorage.getItem('dacn_user');
-      if (!token || !userStr) {
+      if (!userStr) {
         window.location.replace('/static/login.html');
       }
     })();

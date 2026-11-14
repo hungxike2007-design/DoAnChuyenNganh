@@ -26,7 +26,7 @@ if hasattr(sys.stderr, "reconfigure"):
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT_DIR))
 
-from config.db import get_db_connection, init_db
+from backend.config.db import get_db_connection, init_db
 
 
 def hash_password(password: str) -> str:

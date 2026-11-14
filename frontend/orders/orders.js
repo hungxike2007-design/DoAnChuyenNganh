@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const user = getUser();
   const role = (user && user.role ? user.role : 'user').toLowerCase();
+  const scopeLabel = document.getElementById('orders-scope-label');
+  if (scopeLabel) {
+    scopeLabel.textContent = ['admin', 'manager'].includes(role)
+      ? 'Tất cả đơn hàng'
+      : 'Đơn hàng của bạn';
+  }
+
   if (role === 'user') {
     const pageTitle = document.querySelector('.page-title h1');
     if (pageTitle) pageTitle.textContent = 'Lịch Sử & Danh Sách Đơn Hàng';

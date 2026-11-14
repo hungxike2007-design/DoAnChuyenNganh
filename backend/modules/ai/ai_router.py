@@ -11,17 +11,12 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends, Header
+from fastapi import APIRouter, HTTPException, Query, Depends, Header, Request
 from pydantic import BaseModel
 from typing import List, Optional
-try:
-    from backend.modules.ai.gemini_service import GeminiService
-    from backend.modules.auth.auth_router import require_roles, get_current_user, decode_access_token
-    from backend.modules.dashboard.analytics_service import AnalyticsService
-except ImportError:
-    from services.gemini_service import GeminiService
-    from routers.auth_router import require_roles, get_current_user, decode_access_token
-    from services.analytics_service import AnalyticsService
+from backend.modules.ai.gemini_service import GeminiService
+from backend.modules.auth.auth_router import require_roles, get_current_user, decode_access_token
+from backend.modules.dashboard.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/api/ai", tags=["AI Business Consultant"])
 
@@ -36,10 +31,12 @@ class RevenuePlanRequest(BaseModel):
     days: Optional[int] = 30
 
 
-def get_optional_user(authorization: Optional[str] = Header(None)) -> Optional[dict]:
-    if not authorization or not authorization.startswith("Bearer "):
+def get_optional_user(request: Request, authorization: Optional[str] = Header(None)) -> Optional[dict]:
+    token = request.cookies.get("dacn_token")
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    if not token:
         return None
-    token = authorization.split(" ")[1]
     try:
         return decode_access_token(token)
     except Exception:
@@ -69,7 +66,7 @@ def get_strategy(user: dict = Depends(require_roles("admin", "manager", "sales")
 @router.get("/planning-baseline")
 def get_planning_baseline(days: int = Query(30, ge=7, le=180), user: dict = Depends(require_roles("admin", "manager", "sales"))):
     try:
-        from services.analytics_service import AnalyticsService
+        from backend.modules.dashboard.analytics_service import AnalyticsService
         target_user_id = None if user.get("role") == "admin" else int(user["sub"])
         data = AnalyticsService.get_planning_baseline(days, user_id=target_user_id)
         return {"success": True, "data": data}
@@ -168,10 +165,7 @@ def generate_marketing_campaign(req: MarketingCampaignRequest, user: dict = Depe
         }
         if req.product_id:
             try:
-                try:
-                    from backend.config.db import get_db_connection
-                except ImportError:
-                    from config.db import get_db_connection
+                from backend.config.db import get_db_connection
                 conn = get_db_connection()
                 cur = conn.cursor()
                 cur.execute("SELECT name, category, price, stock_quantity, description FROM products WHERE id = ?", (req.product_id,))
@@ -195,10 +189,7 @@ def generate_marketing_campaign(req: MarketingCampaignRequest, user: dict = Depe
 
         # Lưu lịch sử chiến dịch vào CSDL
         try:
-            try:
-                from backend.config.db import get_db_connection
-            except ImportError:
-                from config.db import get_db_connection
+            from backend.config.db import get_db_connection
             conn = get_db_connection()
             cur = conn.cursor()
             user_id = int(user.get("sub", 1))
@@ -228,29 +219,27 @@ def generate_marketing_campaign(req: MarketingCampaignRequest, user: dict = Depe
 @router.get("/marketing-history")
 def get_marketing_history(limit: int = Query(10, ge=1, le=50), user: dict = Depends(require_roles("admin", "manager", "sales", "user"))):
     try:
-        try:
-            from backend.config.db import get_db_connection
-        except ImportError:
-            from config.db import get_db_connection
+        from backend.config.db import DB_TYPE, get_db_connection
         conn = get_db_connection()
         cur = conn.cursor()
         user_role = (user.get("role") or "").lower()
+        created_at_clause = "strftime('%Y-%m-%d %H:%M:%S', created_at) as created_at" if DB_TYPE != "mssql" else "CONVERT(VARCHAR(19), created_at, 120) as created_at"
         if user_role in ["admin", "manager"]:
-            cur.execute("""
-                SELECT id, title, user_prompt, ai_response, metrics_context, CONVERT(VARCHAR(19), created_at, 120) as created_at
+            cur.execute(f"""
+                SELECT id, title, user_prompt, ai_response, metrics_context, {created_at_clause}
                 FROM ai_strategy_logs
                 WHERE strategy_type = 'marketing_studio'
                 ORDER BY id DESC
-                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+                {('LIMIT ? OFFSET 0' if DB_TYPE != 'mssql' else 'OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY')}
             """, (limit,))
         else:
             uid = int(user.get("sub", 1))
-            cur.execute("""
-                SELECT id, title, user_prompt, ai_response, metrics_context, CONVERT(VARCHAR(19), created_at, 120) as created_at
+            cur.execute(f"""
+                SELECT id, title, user_prompt, ai_response, metrics_context, {created_at_clause}
                 FROM ai_strategy_logs
                 WHERE strategy_type = 'marketing_studio' AND created_by = ?
                 ORDER BY id DESC
-                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+                {('LIMIT ? OFFSET 0' if DB_TYPE != 'mssql' else 'OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY')}
             """, (uid, limit))
         rows = [dict(r) for r in cur.fetchall()]
         conn.close()
@@ -274,10 +263,7 @@ def get_marketing_history(limit: int = Query(10, ge=1, le=50), user: dict = Depe
 @router.delete("/marketing-history/{history_id}")
 def delete_marketing_history(history_id: int, user: dict = Depends(require_roles("admin", "manager", "sales", "user"))):
     try:
-        try:
-            from backend.config.db import get_db_connection
-        except ImportError:
-            from config.db import get_db_connection
+        from backend.config.db import get_db_connection
         conn = get_db_connection()
         cur = conn.cursor()
         user_role = (user.get("role") or "").lower()

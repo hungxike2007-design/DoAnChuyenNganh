@@ -12,12 +12,8 @@ Các Endpoint:
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Response, Request
 from typing import Optional
-try:
-    from backend.modules.auth.auth_router import get_current_user, require_roles
-    from backend.modules.orders.import_service import ImportService
-except ImportError:
-    from routers.auth_router import get_current_user, require_roles
-    from services.import_service import ImportService
+from backend.modules.auth.auth_router import get_current_user, require_roles
+from backend.modules.orders.import_service import ImportService
 
 router = APIRouter(prefix="/api/import", tags=["Data Import (Excel & CSV)"])
 

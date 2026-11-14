@@ -11,7 +11,7 @@ Chức năng:
 """
 
 from typing import Dict, Any, List, Optional
-from config.db import get_db_connection, DB_TYPE
+from backend.config.db import get_db_connection, DB_TYPE
 
 
 def calc_mom(current: float, previous: float) -> float:
