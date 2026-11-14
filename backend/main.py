@@ -17,7 +17,7 @@ import os
 import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -36,7 +36,7 @@ if str(BASE_DIR) not in sys.path:
 
 load_dotenv(BASE_DIR / ".env")
 
-from backend.config.db import test_connection
+from backend.config.db import dispose_connection_pools, test_connection
 from backend.modules.auth.auth_router import router as auth_router
 from backend.modules.dashboard.revenue_router import router as revenue_router
 from backend.modules.ai.ai_router import router as ai_router
@@ -56,8 +56,11 @@ async def lifespan(app: FastAPI):
         print("✨ [Backend] Kết nối SQL Server thành công! Sẵn sàng phục vụ tại http://127.0.0.1:8000", flush=True)
     else:
         print("⚠️ [Backend] Cảnh báo: Chưa kết nối được Microsoft SQL Server!", flush=True)
-    yield
-    print("🛑 [Backend] Đang dừng hệ thống...", flush=True)
+    try:
+        yield
+    finally:
+        dispose_connection_pools()
+        print("🛑 [Backend] Đang dừng hệ thống...", flush=True)
 
 
 app = FastAPI(
@@ -92,10 +95,59 @@ frontend_dir = BASE_DIR / "frontend"
 frontend_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/frontend", StaticFiles(directory=str(frontend_dir)), name="frontend")
 
-# Phục vụ thư mục static (Hỗ trợ tương thích ngược 100%)
-static_dir = BASE_DIR / "static"
-if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+# Chuyển các URL static cũ sang frontend chuẩn, không phục vụ bản sao mã nguồn.
+LEGACY_STATIC_REDIRECTS = {
+    "index.html": "index.html",
+    "login.html": "auth/login.html",
+    "register.html": "auth/register.html",
+    "forgot-password.html": "auth/forgot-password.html",
+    "dashboard.html": "dashboard/dashboard.html",
+    "pivot-table.html": "dashboard/pivot-table.html",
+    "orders.html": "orders/orders.html",
+    "products.html": "products/products.html",
+    "customer-rfm.html": "customers/customer-rfm.html",
+    "pnl-report.html": "financial/pnl-report.html",
+    "revenue-planner.html": "ai/revenue-planner.html",
+    "ai-strategy.html": "ai/ai-strategy.html",
+    "ai-copilot.html": "ai/ai-copilot.html",
+    "marketing-studio.html": "ai/marketing-studio.html",
+    "users.html": "users/users.html",
+    "css/main.css": "assets/css/main.css",
+    "css/auth.css": "auth/auth.css",
+    "css/dashboard.css": "dashboard/dashboard.css",
+    "css/ai.css": "ai/ai.css",
+    "css/planner.css": "ai/planner.css",
+    "js/api.js": "assets/js/api.js",
+    "js/auth.js": "auth/auth.js",
+    "js/copilot.js": "ai/copilot.js",
+    "js/dashboard.js": "dashboard/dashboard.js",
+    "js/import_helper.js": "orders/import_helper.js",
+    "js/marketing-studio.js": "ai/marketing-studio.js",
+    "js/orders.js": "orders/orders.js",
+    "js/pivot-table.js": "dashboard/pivot-table.js",
+    "js/planner.js": "ai/planner.js",
+    "js/pnl-report.js": "financial/pnl-report.js",
+    "js/products.js": "products/products.js",
+    "js/rfm.js": "customers/rfm.js",
+    "js/strategy.js": "ai/strategy.js",
+    "js/users.js": "users/users.js",
+}
+
+
+@app.get("/static")
+def redirect_legacy_static_root():
+    return RedirectResponse(url="/frontend/index.html", status_code=308)
+
+
+@app.get("/static/{resource_path:path}")
+def redirect_legacy_static(resource_path: str, request: Request):
+    target = LEGACY_STATIC_REDIRECTS.get(resource_path or "index.html")
+    if not target:
+        raise HTTPException(status_code=404, detail="Tài nguyên cũ không tồn tại.")
+    url = f"/frontend/{target}"
+    if request.url.query:
+        url = f"{url}?{request.url.query}"
+    return RedirectResponse(url=url, status_code=308)
 
 
 @app.get("/")

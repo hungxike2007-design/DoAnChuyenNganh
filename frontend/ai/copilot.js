@@ -202,7 +202,10 @@ function appendLoadingBubble() {
 
 function formatChatContent(text) {
   if (!text) return '';
-  return text
+  const escapeHTML = value => String(value).replace(/[&<>\"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+  }[ch]));
+  return escapeHTML(text)
     .replace(/#{1,6}\s*/g, '')
     .replace(/^---\s*$/gm, '')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')

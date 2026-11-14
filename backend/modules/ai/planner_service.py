@@ -12,14 +12,9 @@ Tách riêng module xử lý nghiệp vụ Lập Kế Hoạch Kinh Doanh:
 
 import json
 from datetime import datetime
-try:
-    from backend.config.db import get_db_connection
-    from backend.config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
-    from backend.modules.dashboard.analytics_service import AnalyticsService
-except ImportError:
-    from config.db import get_db_connection
-    from config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
-    from services.analytics_service import AnalyticsService
+from backend.config.db import execute_insert_and_get_id, get_db_connection
+from backend.config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
+from backend.modules.dashboard.analytics_service import AnalyticsService
 
 
 class PlannerService:
@@ -102,7 +97,7 @@ Hãy xây dựng bản Kế Hoạch Chiến Lược Phân Rã Mục Tiêu Doanh 
         # 4. Lưu lại vào CSDL để quản lý
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        log_id = execute_insert_and_get_id(cursor, """
             INSERT INTO ai_strategy_logs (title, strategy_type, user_prompt, ai_response, metrics_context, created_by)
             VALUES (?, 'goal_plan', ?, ?, ?, ?)
         """, (
@@ -121,7 +116,6 @@ Hãy xây dựng bản Kế Hoạch Chiến Lược Phân Rã Mục Tiêu Doanh 
             user_id
         ))
         conn.commit()
-        log_id = cursor.lastrowid
         conn.close()
 
         return {

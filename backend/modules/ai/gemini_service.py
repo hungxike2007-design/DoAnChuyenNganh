@@ -10,14 +10,9 @@ Tích hợp Google GenAI SDK để thực hiện 3 nghiệp vụ cốt lõi:
 """
 
 import json
-try:
-    from backend.config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
-    from backend.config.db import get_db_connection
-    from backend.modules.dashboard.analytics_service import AnalyticsService
-except ImportError:
-    from config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
-    from config.db import get_db_connection
-    from services.analytics_service import AnalyticsService
+from backend.config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
+from backend.config.db import execute_insert_and_get_id, get_db_connection
+from backend.modules.dashboard.analytics_service import AnalyticsService
 
 
 class GeminiService:
@@ -31,10 +26,11 @@ class GeminiService:
         system_instruction = (
             "Bạn là Giám đốc Phân tích Dữ liệu và Cố vấn Chiến lược Kinh doanh cao cấp. "
             "Hãy đọc báo cáo số liệu thực tế được cung cấp và đưa ra bản tóm tắt chiến lược chuyên nghiệp, "
-            "ngắn gọn, mạch lạc bằng Tiếng Việt với định dạng Markdown."
+            "ngắn gọn, mạch lạc bằng Tiếng Việt với định dạng Markdown. Bắt buộc tuân thủ dữ liệu thực tế và không suy đoán ngoài ngữ cảnh được cung cấp."
         )
 
         prompt = f"""
+<context>
 Dưới đây là số liệu kinh doanh thực tế trích xuất từ cơ sở dữ liệu hệ thống:
 - Tổng doanh thu (60 ngày qua): {kpis['totalRevenue']:,.0f} VNĐ
 - Lợi nhuận gộp: {kpis['grossProfit']:,.0f} VNĐ (Tỷ suất lợi nhuận: {kpis['profitMargin']}%)
@@ -46,11 +42,18 @@ Thống kê theo kênh bán hàng:
 
 Top 5 sản phẩm bán chạy nhất:
 {json.dumps(top_products, ensure_ascii=False, indent=2)}
-
+</context>
+<rules>
+- Chỉ dùng dữ liệu trong context.
+- Chỉ đưa ra nhận định dựa trên số liệu được cung cấp.
+- Trả lời theo 3 phần: Điểm sáng, rủi ro, hành động cụ thể.
+</rules>
+<user_prompt>
 Hãy phân tích theo cấu trúc sau:
 1. 🌟 **Điểm sáng kinh doanh:** Những chỉ số hoặc kênh bán hàng hoạt động xuất sắc nhất.
 2. ⚠️ **Rủi ro & Điểm nghẽn cần khắc phục:** Cảnh báo về tỷ lệ hủy, sản phẩm biên lợi nhuận thấp hoặc kênh hoạt động kém.
 3. 🚀 **3 Hành động cụ thể (Action Items):** Đưa ra 3 khuyến nghị hành động ngay trong tuần tới để tăng 15% doanh thu.
+</user_prompt>
 """
 
         ai_text = generate_ai_response(prompt, system_instruction)
@@ -58,7 +61,7 @@ Hãy phân tích theo cấu trúc sau:
         # Lưu lại vào DB để tra cứu lịch sử
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        log_id = execute_insert_and_get_id(cursor, """
             INSERT INTO ai_strategy_logs (title, strategy_type, user_prompt, ai_response, metrics_context, created_by)
             VALUES (?, 'summary', ?, ?, ?, ?)
         """, (
@@ -69,7 +72,6 @@ Hãy phân tích theo cấu trúc sau:
             user_id
         ))
         conn.commit()
-        log_id = cursor.lastrowid
         conn.close()
 
         return {
@@ -88,28 +90,37 @@ Hãy phân tích theo cấu trúc sau:
 
         system_instruction = (
             "Bạn là Chuyên gia Tối ưu Giá (Dynamic Pricing) và Chiến lược Giỏ hàng (Cross-sell/Up-sell). "
-            "Mục tiêu là tối đa hóa lợi nhuận và giải phóng hàng tồn kho mà không làm tổn hại hình ảnh thương hiệu."
+            "Mục tiêu là tối đa hóa lợi nhuận và giải phóng hàng tồn kho mà không làm tổn hại hình ảnh thương hiệu. "
+            "Hãy tối ưu dựa trên dữ liệu thực tế và tránh đưa ra giả định không có căn cứ."
         )
 
         prompt = f"""
+<context>
 Dữ liệu kho hàng hiện tại:
 - Danh sách sản phẩm tồn kho cần đẩy mạnh xả hàng hoặc đang bán chậm:
 {json.dumps(alerts, ensure_ascii=False, indent=2)}
 
 - Danh sách sản phẩm bán chạy nhất (Best-sellers):
 {json.dumps(top_products, ensure_ascii=False, indent=2)}
-
+</context>
+<rules>
+- Chỉ tính toán dựa trên số lượng tồn kho và dữ liệu bán chạy được cung cấp.
+- Không tăng mức giảm giá xuống dưới giá vốn nếu không có căn cứ kinh doanh rõ ràng.
+- Chỉ đề xuất chiến lược có thể thực thi trong 1 tuần tới.
+</rules>
+<user_prompt>
 Hãy xây dựng chiến lược tối ưu:
 1. 🎯 **Gợi ý 2 gói Combo (Cross-sell Bundles):** Ghép 1 sản phẩm bán chạy với 1 sản phẩm bán chậm, nêu rõ tỷ lệ giảm giá đề xuất (ví dụ: Giảm 12% khi mua combo) và lý do khách hàng sẽ mua.
 2. 🏷️ **Chiến lược Dynamic Pricing (Giá linh hoạt):** Đề xuất mức giá khuyến mãi tối ưu cho sản phẩm tồn kho sao cho vẫn giữ được biên lợi nhuận trên giá vốn (COGS).
 3. ⏱️ **Kế hoạch Flash Sale:** Khung giờ vàng và kênh bán hàng phù hợp nhất để kích hoạt chương trình.
+</user_prompt>
 """
 
         ai_text = generate_ai_response(prompt, system_instruction)
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        log_id = execute_insert_and_get_id(cursor, """
             INSERT INTO ai_strategy_logs (title, strategy_type, user_prompt, ai_response, metrics_context, created_by)
             VALUES (?, 'pricing', ?, ?, ?, ?)
         """, (
@@ -120,7 +131,6 @@ Hãy xây dựng chiến lược tối ưu:
             user_id
         ))
         conn.commit()
-        log_id = cursor.lastrowid
         conn.close()
 
         return {
@@ -165,10 +175,12 @@ Hãy xây dựng chiến lược tối ưu:
         system_instruction = (
             "Bạn là Giám đốc Chiến lược Doanh thu cấp cao (Chief Revenue Officer). "
             "Nhiệm vụ của bạn là lập kế hoạch phân rã mục tiêu doanh thu và xây dựng lộ trình hành động 4 tuần "
-            "thực tế, có tính khả thi cao bằng Tiếng Việt với định dạng Markdown chuyên nghiệp."
+            "thực tế, có tính khả thi cao bằng Tiếng Việt với định dạng Markdown chuyên nghiệp. "
+            "Tất cả phân tích phải dựa trên dữ liệu đầu vào được cung cấp và không suy đoán không có căn cứ."
         )
 
         prompt = f"""
+<context>
 Dưới đây là bài toán thiết lập mục tiêu kinh doanh cho chu kỳ {days} ngày tới:
 - Doanh thu cơ sở (thực tế kỳ trước): {baseline_rev:,.0f} VNĐ
 - Doanh thu mục tiêu đề ra: {target_revenue:,.0f} VNĐ (Tăng trưởng: {growth_rate:+.1f}%)
@@ -183,7 +195,13 @@ Top 3 sản phẩm bán chạy nhất hiện tại:
 
 Danh sách sản phẩm tồn kho cần đẩy mạnh xả hàng:
 {json.dumps(inventory_alerts[:3], ensure_ascii=False, indent=2)}
-
+</context>
+<rules>
+- Chỉ dựa trên dữ liệu thật có trong context.
+- Cân nhắc rủi ro hủy đơn và biên lợi nhuận thực tế trước khi đề xuất giảm giá.
+- Lộ trình phải chia theo 4 tuần rõ ràng, có mục tiêu và hành động thực thi.
+</rules>
+<user_prompt>
 Hãy xây dựng bản Kế Hoạch Chiến Lược Phân Rã Mục Tiêu Doanh Thu theo cấu trúc sau:
 1. 🎯 **Đánh giá Tính Khả Thi & Thách Thức (Feasibility Analysis):** Đánh giá mức tăng trưởng {growth_rate:+.1f}% có khả thi với nguồn lực hiện tại không và 2 thách thức lớn nhất cần giải quyết.
 2. 📊 **Chiến Lược Phân Bổ Hạn Mức Kênh (Channel Allocation Strategy):** Hướng dẫn kênh nào nên tập trung tăng ngân sách ads, kênh nào nên dùng để chốt đơn AOV cao.
@@ -194,13 +212,14 @@ Hãy xây dựng bản Kế Hoạch Chiến Lược Phân Rã Mục Tiêu Doanh 
    - **Tuần 3 (Đợt sóng Mega Sale giữa kỳ):** Khung giờ vàng Flash sale và đẩy mạnh kênh TikTok/Shopee.
    - **Tuần 4 (Nước rút & Hoàn tất KPI):** Chăm sóc khách VIP, gọi lại giỏ hàng bỏ quên và đánh giá cán đích.
 5. 🛡️ **Quản Trị Rủi Ro & Vòng Bảo Vệ An Toàn (Guardrails):** Cảnh báo tỷ lệ hủy đơn và nguyên tắc không giảm giá dưới giá vốn (COGS).
+</user_prompt>
 """
 
         ai_text = generate_ai_response(prompt, system_instruction)
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        log_id = execute_insert_and_get_id(cursor, """
             INSERT INTO ai_strategy_logs (title, strategy_type, user_prompt, ai_response, metrics_context, created_by)
             VALUES (?, 'goal_plan', ?, ?, ?, ?)
         """, (
@@ -219,7 +238,6 @@ Hãy xây dựng bản Kế Hoạch Chiến Lược Phân Rã Mục Tiêu Doanh 
             user_id
         ))
         conn.commit()
-        log_id = cursor.lastrowid
         conn.close()
 
         return {
@@ -303,14 +321,24 @@ Người dùng hỏi: "{user_query}"
         if not user_id:
             return []
         try:
+            from backend.config.db import DB_TYPE
             conn = get_db_connection()
             cur = conn.cursor()
-            cur.execute("""
-                SELECT TOP (?) id, sender, message, created_at 
-                FROM ai_chat_messages 
-                WHERE user_id = ? 
-                ORDER BY id ASC
-            """, (limit, user_id))
+            if DB_TYPE == "mssql":
+                cur.execute("""
+                    SELECT TOP (?) id, sender, message, created_at
+                    FROM ai_chat_messages
+                    WHERE user_id = ?
+                    ORDER BY id ASC
+                """, (limit, user_id))
+            else:
+                cur.execute("""
+                    SELECT id, sender, message, created_at
+                    FROM ai_chat_messages
+                    WHERE user_id = ?
+                    ORDER BY id ASC
+                    LIMIT ?
+                """, (user_id, limit))
             rows = [dict(r) for r in cur.fetchall()]
             conn.close()
             return rows
@@ -337,23 +365,41 @@ Người dùng hỏi: "{user_query}"
 
     @staticmethod
     def get_strategy_history(limit: int = 10, user_id: int = None) -> list:
+        from backend.config.db import DB_TYPE
         conn = get_db_connection()
         cursor = conn.cursor()
         if user_id:
-            cursor.execute("""
-                SELECT id, title, strategy_type, ai_response, created_at 
-                FROM ai_strategy_logs 
-                WHERE created_by = ?
-                ORDER BY id DESC
-                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
-            """, (user_id, limit))
+            if DB_TYPE == "mssql":
+                cursor.execute("""
+                    SELECT id, title, strategy_type, ai_response, created_at
+                    FROM ai_strategy_logs
+                    WHERE created_by = ?
+                    ORDER BY id DESC
+                    OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+                """, (user_id, limit))
+            else:
+                cursor.execute("""
+                    SELECT id, title, strategy_type, ai_response, created_at
+                    FROM ai_strategy_logs
+                    WHERE created_by = ?
+                    ORDER BY id DESC
+                    LIMIT ? OFFSET 0
+                """, (user_id, limit))
         else:
-            cursor.execute("""
-                SELECT id, title, strategy_type, ai_response, created_at 
-                FROM ai_strategy_logs 
-                ORDER BY id DESC
-                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
-            """, (limit,))
+            if DB_TYPE == "mssql":
+                cursor.execute("""
+                    SELECT id, title, strategy_type, ai_response, created_at
+                    FROM ai_strategy_logs
+                    ORDER BY id DESC
+                    OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+                """, (limit,))
+            else:
+                cursor.execute("""
+                    SELECT id, title, strategy_type, ai_response, created_at
+                    FROM ai_strategy_logs
+                    ORDER BY id DESC
+                    LIMIT ? OFFSET 0
+                """, (limit,))
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         return rows
@@ -445,7 +491,7 @@ Yêu cầu định dạng JSON trả về chính xác như sau:
   }}
 }}
 """
-        raw_response = generate_ai_response(prompt, system_instruction=system_instruction)
+        raw_response = generate_ai_response(prompt, system_instruction=system_instruction, response_mime_type="application/json")
         clean_text = raw_response.strip()
         if clean_text.startswith("```json"):
             clean_text = clean_text[7:]

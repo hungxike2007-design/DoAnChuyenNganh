@@ -15,33 +15,30 @@ import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
-try:
-    from backend.config.db import get_db_connection
-    from backend.config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
-except ImportError:
-    from config.db import get_db_connection
-    from config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
+from backend.config.db import get_db_connection, sql_date_group
+from backend.config.ai_config import generate_ai_response, is_ai_ready, GEMINI_MODEL
 
 
-# Danh sách Whitelist 4 chiều cốt lõi thực tế nhất
-DIMENSIONS_MAP = {
-    "channel": {
-        "field": "COALESCE(o.channel, N'Khác')",
-        "label": "Kênh Bán Hàng"
-    },
-    "category": {
-        "field": "COALESCE(c.name, N'Chưa phân loại')",
-        "label": "Danh Mục Sản Phẩm"
-    },
-    "city": {
-        "field": "COALESCE(cust.city, N'Khác')",
-        "label": "Tỉnh / Thành Phố"
-    },
-    "month_period": {
-        "field": "CONVERT(VARCHAR(7), o.order_date, 120)",
-        "label": "Thời Gian (Tháng)"
+def get_dimensions_map() -> Dict[str, Dict[str, str]]:
+    """Trả về cấu hình các chiều phân tích tương thích cả MSSQL & SQLite."""
+    return {
+        "channel": {
+            "field": "COALESCE(o.channel, 'Khác')",
+            "label": "Kênh Bán Hàng"
+        },
+        "category": {
+            "field": "COALESCE(c.name, 'Chưa phân loại')",
+            "label": "Danh Mục Sản Phẩm"
+        },
+        "city": {
+            "field": "COALESCE(cust.city, 'Khác')",
+            "label": "Tỉnh / Thành Phố"
+        },
+        "month_period": {
+            "field": sql_date_group("o.order_date", "month"),
+            "label": "Thời Gian (Tháng)"
+        }
     }
-}
 
 # 3 Chỉ số đo lường tài chính quan trọng nhất
 METRICS_MAP = {
@@ -68,8 +65,9 @@ class PivotService:
     @staticmethod
     def get_supported_metadata() -> Dict[str, Any]:
         """Trả về danh sách các chiều và chỉ số hỗ trợ cho giao diện frontend."""
+        dimensions = get_dimensions_map()
         return {
-            "dimensions": [{"key": k, "label": v["label"]} for k, v in DIMENSIONS_MAP.items()],
+            "dimensions": [{"key": k, "label": v["label"]} for k, v in dimensions.items()],
             "metrics": [{"key": k, "label": v["label"], "unit": v["unit"]} for k, v in METRICS_MAP.items()]
         }
 
@@ -83,16 +81,17 @@ class PivotService:
         user_id: Optional[int] = None,
         role: str = "admin"
     ) -> Dict[str, Any]:
-        """Tạo ma trận Pivot 2 chiều từ CSDL SQL Server."""
-        if row_dim not in DIMENSIONS_MAP:
+        """Tạo ma trận Pivot 2 chiều từ CSDL SQL Server hoặc SQLite."""
+        dimensions = get_dimensions_map()
+        if row_dim not in dimensions:
             row_dim = "channel"
-        if col_dim not in DIMENSIONS_MAP:
+        if col_dim not in dimensions:
             col_dim = "category"
         if metric not in METRICS_MAP:
             metric = "total_revenue"
 
-        row_cfg = DIMENSIONS_MAP[row_dim]
-        col_cfg = DIMENSIONS_MAP[col_dim]
+        row_cfg = dimensions[row_dim]
+        col_cfg = dimensions[col_dim]
         metric_cfg = METRICS_MAP[metric]
 
         conn = get_db_connection()
