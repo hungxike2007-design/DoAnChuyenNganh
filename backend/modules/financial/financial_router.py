@@ -14,12 +14,8 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-try:
-    from backend.modules.financial.financial_service import FinancialService
-    from backend.modules.auth.auth_router import require_roles, get_current_user
-except ImportError:
-    from services.financial_service import FinancialService
-    from routers.auth_router import require_roles, get_current_user
+from backend.modules.financial.financial_service import FinancialService
+from backend.modules.auth.auth_router import require_roles, get_current_user
 
 router = APIRouter(prefix="/api/financial", tags=["Financial & P&L"])
 

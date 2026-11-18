@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.success && res.data) {
-          setToken(res.data.token);
           setUser(res.data.user);
           showToast('Đăng nhập thành công! Đang chuyển hướng...', 'success');
           setTimeout(() => {
@@ -72,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.success && res.data) {
-          setToken(res.data.token);
           setUser(res.data.user);
           showToast('Đăng ký tài khoản thành công! Đang chuyển hướng...', 'success');
           setTimeout(() => {

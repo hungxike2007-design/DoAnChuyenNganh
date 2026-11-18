@@ -11,18 +11,13 @@ Các Endpoint:
 ==============================================================================
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header, Request
+import os
+from fastapi import APIRouter, HTTPException, Depends, Header, Request, Response
 from pydantic import BaseModel
 from typing import Optional
-try:
-    from backend.modules.auth.auth_service import AuthService, decode_access_token
-except ImportError:
-    from services.auth_service import AuthService, decode_access_token
+from backend.modules.auth.auth_service import AuthService, decode_access_token
 
-try:
-    from backend.config.db import get_db_connection
-except ImportError:
-    from config.db import get_db_connection
+from backend.config.db import get_db_connection
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -51,10 +46,12 @@ class ResetPasswordRequest(BaseModel):
 
 
 # Dependency để bảo vệ endpoint cần đăng nhập
-def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
-    if not authorization or not authorization.startswith("Bearer "):
+def get_current_user(request: Request, authorization: Optional[str] = Header(None)) -> dict:
+    token = request.cookies.get("dacn_token")
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    if not token:
         raise HTTPException(status_code=401, detail="Vui lòng đăng nhập để tiếp tục.")
-    token = authorization.split(" ")[1]
     try:
         payload = decode_access_token(token)
         return payload
@@ -81,14 +78,24 @@ def require_roles(*allowed_roles):
     return role_checker
 
 
+def _auth_cookie_settings():
+    return {
+        "key": "dacn_token", "httponly": True,
+        "secure": os.getenv("COOKIE_SECURE", "false").lower() == "true",
+        "samesite": "lax", "path": "/",
+        "max_age": int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080")) * 60,
+    }
+
+
 @router.post("/register")
-def register(req: RegisterRequest):
+def register(req: RegisterRequest, response: Response):
     try:
         result = AuthService.register_user(req.fullName, req.email, req.password, req.role)
+        response.set_cookie(value=result["token"], **_auth_cookie_settings())
         return {
             "success": True,
             "message": "Đăng ký tài khoản thành công!",
-            "data": result
+            "data": {"user": result["user"]}
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -97,13 +104,14 @@ def register(req: RegisterRequest):
 
 
 @router.post("/login")
-def login(req: LoginRequest):
+def login(req: LoginRequest, response: Response):
     try:
         result = AuthService.login_user(req.email, req.password)
+        response.set_cookie(value=result["token"], **_auth_cookie_settings())
         return {
             "success": True,
             "message": "Đăng nhập thành công!",
-            "data": result
+            "data": {"user": result["user"]}
         }
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
@@ -111,14 +119,28 @@ def login(req: LoginRequest):
         raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
 
 
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie("dacn_token", path="/", httponly=True,
+                           secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+                           samesite="lax")
+    return {"success": True, "message": "Đã đăng xuất."}
+
+
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest):
     try:
         result = AuthService.request_forgot_password(req.email)
+        debug_mode = os.getenv("DEBUG_MODE", "false").lower() in {"1", "true", "yes", "on"}
+        data = {"email": result["email"], "expires_in_minutes": result["expires_in_minutes"]}
+        message = "Yêu cầu khôi phục đã được ghi nhận. Vui lòng kiểm tra kênh nhận OTP do quản trị cấu hình."
+        if debug_mode:
+            data["demo_otp"] = result["demo_otp"]
+            message = f"Mã OTP demo đồ án: {result['demo_otp']}"
         return {
             "success": True,
-            "message": f"Mã xác thực OTP đã được gửi! (Mã OTP demo đồ án là: {result['demo_otp']})",
-            "data": result
+            "message": message,
+            "data": data
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -163,17 +185,19 @@ class UpdateRoleRequest(BaseModel):
 @router.get("/users")
 def get_all_users(admin: dict = Depends(require_roles("admin"))):
     """Admin lấy danh sách toàn bộ người dùng và vai trò."""
-    from config.db import get_db_connection
+    from backend.config.db import DB_TYPE, get_db_connection
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT u.id, u.full_name, u.email, u.role, u.avatar_url, 
-               CONVERT(VARCHAR(10), u.created_at, 120) as created_at,
+    created_at_expr = "strftime('%Y-%m-%d', u.created_at) as created_at" if DB_TYPE != "mssql" else "CONVERT(VARCHAR(10), u.created_at, 120) as created_at"
+    group_by_expr = "strftime('%Y-%m-%d', u.created_at)" if DB_TYPE != "mssql" else "CONVERT(VARCHAR(10), u.created_at, 120)"
+    cursor.execute(f"""
+        SELECT u.id, u.full_name, u.email, u.role, u.avatar_url,
+               {created_at_expr},
                COUNT(o.id) as total_orders,
                COALESCE(SUM(o.net_amount), 0) as total_revenue
         FROM users u
         LEFT JOIN orders o ON u.id = o.user_id AND o.status = 'completed'
-        GROUP BY u.id, u.full_name, u.email, u.role, u.avatar_url, CONVERT(VARCHAR(10), u.created_at, 120)
+        GROUP BY u.id, u.full_name, u.email, u.role, u.avatar_url, {group_by_expr}
         ORDER BY total_revenue DESC, u.id ASC
     """)
     users = cursor.fetchall()
@@ -190,7 +214,7 @@ def update_user_role(user_id: int, req: UpdateRoleRequest, request: Request, adm
     if req.role not in ["admin", "manager", "sales", "user"]:
         raise HTTPException(status_code=400, detail="Vai trò không hợp lệ! Chỉ cho phép: admin, manager, sales, user.")
 
-    from config.db import get_db_connection
+    from backend.config.db import get_db_connection
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT role, email FROM users WHERE id = ?", (user_id,))

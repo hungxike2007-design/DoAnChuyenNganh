@@ -21,10 +21,18 @@ import unicodedata
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import pandas as pd
-try:
-    from backend.config.db import get_db_connection
-except ImportError:
-    from config.db import get_db_connection
+from backend.config.db import get_db_connection, DB_TYPE
+
+
+def execute_insert_and_get_id(cursor, sql_mssql: str, sql_sqlite: str, params: tuple) -> Optional[int]:
+    """Hỗ trợ chèn bản ghi và lấy ID an toàn cho cả MSSQL (OUTPUT INSERTED.id) và SQLite (lastrowid)."""
+    if DB_TYPE == "mssql":
+        cursor.execute(sql_mssql, params)
+        row = cursor.fetchone()
+        return row["id"] if row else None
+    else:
+        cursor.execute(sql_sqlite, params)
+        return cursor.lastrowid
 
 
 def strip_accents_and_normalize(text: str) -> str:
@@ -307,13 +315,20 @@ class ImportService:
                 else:
                     # Tạo khách hàng mới với email độc nhất
                     unique_email = f"cust_{int(datetime.now().timestamp()*1000)}_{random.randint(1000, 9999)}@import.local"
-                    cursor.execute("""
+                    now_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    sql_mssql = """
                         INSERT INTO customers (name, email, phone, city, segment, total_spent, orders_count, last_order_date, user_id)
                         OUTPUT INSERTED.id
-                        VALUES (?, ?, ?, ?, 'New', 0, 0, GETDATE(), ?)
-                    """, (c_name, unique_email, c_phone or None, "Hồ Chí Minh", user_id))
-                    cust_row = cursor.fetchone()
-                    cust_id = cust_row["id"] if cust_row else None
+                        VALUES (?, ?, ?, ?, 'New', 0, 0, ?, ?)
+                    """
+                    sql_sqlite = """
+                        INSERT INTO customers (name, email, phone, city, segment, total_spent, orders_count, last_order_date, user_id)
+                        VALUES (?, ?, ?, ?, 'New', 0, 0, ?, ?)
+                    """
+                    cust_id = execute_insert_and_get_id(
+                        cursor, sql_mssql, sql_sqlite,
+                        (c_name, unique_email, c_phone or None, "Hồ Chí Minh", now_dt, user_id)
+                    )
                     new_customers_created += 1
                     if c_phone:
                         cust_by_phone[c_phone] = {"id": cust_id, "name": c_name, "phone": c_phone}
@@ -355,17 +370,23 @@ class ImportService:
                             WHERE id = ?
                         """, (old_net_amount, net_amount, order_date_str, cust_id))
                 else:
-                    cursor.execute("""
+                    sql_ord_mssql = """
                         INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
                         OUTPUT INSERTED.id
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        ord_info["order_code"], cust_id, ord_info["channel"], tot_amount,
-                        ord_info["discount_amount"], net_amount, ord_info["payment_method"],
-                        ord_info["status"], order_date_str, user_id
-                    ))
-                    order_row = cursor.fetchone()
-                    order_id = order_row["id"] if order_row else None
+                    """
+                    sql_ord_sqlite = """
+                        INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    order_id = execute_insert_and_get_id(
+                        cursor, sql_ord_mssql, sql_ord_sqlite,
+                        (
+                            ord_info["order_code"], cust_id, ord_info["channel"], tot_amount,
+                            ord_info["discount_amount"], net_amount, ord_info["payment_method"],
+                            ord_info["status"], order_date_str, user_id
+                        )
+                    )
                     imported_orders_count += 1
 
                     # Cập nhật chi tiêu khách hàng mới
@@ -403,13 +424,19 @@ class ImportService:
                             prod_by_sku[p_sku] = {"id": prod_id, "sku": p_sku, "name": p_exist.get("name", p_name), "cost_price": c_price}
                         else:
                             # Tự động tạo sản phẩm mới vào kho của shop
-                            cursor.execute("""
+                            sql_prod_mssql = """
                                 INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
                                 OUTPUT INSERTED.id
                                 VALUES (?, ?, 1, ?, ?, 100, ?)
-                            """, (p_sku, p_name, c_price, it["unit_price"], user_id))
-                            p_row = cursor.fetchone()
-                            prod_id = p_row["id"] if p_row else None
+                            """
+                            sql_prod_sqlite = """
+                                INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
+                                VALUES (?, ?, 1, ?, ?, 100, ?)
+                            """
+                            prod_id = execute_insert_and_get_id(
+                                cursor, sql_prod_mssql, sql_prod_sqlite,
+                                (p_sku, p_name, c_price, it["unit_price"], user_id)
+                            )
                             new_products_created += 1
                             prod_by_sku[p_sku] = {"id": prod_id, "sku": p_sku, "name": p_name, "cost_price": c_price}
                         prod_by_name[p_name.lower()] = prod_by_sku[p_sku]

@@ -27,10 +27,10 @@ if hasattr(sys.stderr, "reconfigure"):
 ROOT_DIR = Path(__file__).resolve().parent
 load_dotenv(ROOT_DIR / ".env")
 
-from services.auth_service import AuthService
-from services.analytics_service import AnalyticsService
-from services.gemini_service import GeminiService
-from config.ai_config import is_ai_ready, GEMINI_MODEL
+from backend.modules.auth.auth_service import AuthService
+from backend.modules.dashboard.analytics_service import AnalyticsService
+from backend.modules.ai.gemini_service import GeminiService
+from backend.config.ai_config import is_ai_ready, GEMINI_MODEL
 
 # Cấu hình trang Streamlit
 st.set_page_config(

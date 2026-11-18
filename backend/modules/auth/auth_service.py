@@ -20,10 +20,7 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
-try:
-    from backend.config.db import get_db_connection
-except ImportError:
-    from config.db import get_db_connection
+from backend.config.db import execute_insert_and_get_id, get_db_connection
 
 JWT_SECRET = os.getenv("JWT_SECRET", "super_secret_jwt_key_dacn_python_2026")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -74,16 +71,16 @@ class AuthService:
             conn.close()
             raise ValueError("Email này đã được sử dụng. Vui lòng chọn email khác.")
 
-        # Đăng ký tài khoản mặc định là 'user' (nhân viên bán hàng / người dùng thông thường)
-        # Chỉ Admin mới có quyền gán quyền manager hoặc admin trong hệ thống
-        assigned_role = role if role in ["admin", "manager", "sales", "user"] else "user"
+        # BẢO MẬT (OWASP A01): Đăng ký công khai luôn luôn cố định quyền 'user'
+        # Ngăn chặn lỗ hổng leo quyền (Privilege Escalation) gán role admin/manager tùy tiện.
+        # Nâng quyền chỉ được thực hiện bởi Admin qua endpoint quản trị /api/auth/users/{id}/role.
+        assigned_role = "user"
         pw_hash = hash_password(password)
 
-        cursor.execute(
+        user_id = execute_insert_and_get_id(cursor,
             "INSERT INTO users (full_name, email, password_hash, role) VALUES (?, ?, ?, ?)",
             (full_name.strip(), email_clean, pw_hash, assigned_role)
         )
-        user_id = cursor.lastrowid
         conn.commit()
 
         cursor.execute("SELECT id, full_name, email, role, created_at FROM users WHERE id = ?", (user_id,))
@@ -159,7 +156,8 @@ class AuthService:
         conn.commit()
         conn.close()
 
-        print(f"\n🔑 [OTP RESET PASSWORD] Email: {email_clean} | Mã OTP: {otp_code} (Hạn 15 phút)\n")
+        if os.getenv("DEBUG_MODE", "false").lower() in {"1", "true", "yes", "on"}:
+            print(f"\n🔑 [OTP RESET PASSWORD] Email: {email_clean} | Mã OTP: {otp_code} (Hạn 15 phút)\n")
 
         return {
             "email": email_clean,
@@ -177,9 +175,10 @@ class AuthService:
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT TOP 1 * FROM password_resets 
-            WHERE email = ? AND otp_code = ? AND is_used = 0 
+            SELECT * FROM password_resets
+            WHERE email = ? AND otp_code = ? AND is_used = 0
             ORDER BY id DESC
+            LIMIT 1
         """, (email_clean, otp_code.strip()))
         record = cursor.fetchone()
 

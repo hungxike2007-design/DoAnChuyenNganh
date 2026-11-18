@@ -38,11 +38,7 @@ function setupEventListeners() {
   document.getElementById('btn-generate-pivot')?.addEventListener('click', loadPivotMatrix);
   document.getElementById('btn-ai-insight')?.addEventListener('click', loadAiInsight);
   document.getElementById('btn-export-csv')?.addEventListener('click', exportMatrixCsv);
-  document.getElementById('btn-logout')?.addEventListener('click', () => {
-    localStorage.removeItem('dacn_token');
-    localStorage.removeItem('dacn_user');
-    window.location.replace('/frontend/auth/login.html');
-  });
+  document.getElementById('btn-logout')?.addEventListener('click', logout);
 
   // Tự động load lại khi đổi chỉ số hoặc thời gian
   document.getElementById('select-metric')?.addEventListener('change', loadPivotMatrix);

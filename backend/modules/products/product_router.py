@@ -13,14 +13,9 @@ Chức năng:
 from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel, Field
 from typing import Optional
-try:
-    from backend.config.db import get_db_connection
-    from backend.modules.auth.auth_router import get_current_user, require_roles
-    from backend.modules.auth.auth_service import decode_access_token
-except ImportError:
-    from config.db import get_db_connection
-    from routers.auth_router import get_current_user, require_roles
-    from services.auth_service import decode_access_token
+from backend.config.db import execute_insert_and_get_id, get_db_connection
+from backend.modules.auth.auth_router import get_current_user, require_roles
+from backend.modules.auth.auth_service import decode_access_token
 
 router = APIRouter(prefix="/api/products", tags=["Products & Categories"])
 
@@ -43,12 +38,14 @@ class SetCustomPriceRequest(BaseModel):
 
 
 @router.get("/")
-def get_products(authorization: Optional[str] = Header(None)):
+def get_products(request: Request, authorization: Optional[str] = Header(None)):
     user_role = "sales"
     user_id = None
-    if authorization and authorization.startswith("Bearer "):
+    token = request.cookies.get("dacn_token")
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    if token:
         try:
-            token = authorization.split(" ")[1]
             payload = decode_access_token(token)
             user_role = payload.get("role", "sales")
             user_id = int(payload.get("sub")) if payload.get("sub") else None
@@ -116,12 +113,11 @@ def create_product(req: CreateProductRequest, user: dict = Depends(get_current_u
     cursor = conn.cursor()
     try:
         user_id = int(user["sub"])
-        cursor.execute("""
+        product_id = execute_insert_and_get_id(cursor, """
             INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, image_url, user_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (req.sku, req.name, req.categoryId, req.costPrice, req.sellingPrice, req.stockQuantity, req.imageUrl, user_id))
         conn.commit()
-        product_id = cursor.lastrowid
         conn.close()
         return {"success": True, "message": "Thêm sản phẩm thành công vào kho của bạn!", "id": product_id}
     except Exception as e:

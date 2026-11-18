@@ -15,16 +15,39 @@ Các Endpoint:
 from fastapi import APIRouter, Query, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-try:
-    from backend.modules.dashboard.analytics_service import AnalyticsService
-    from backend.modules.auth.auth_router import require_roles, get_current_user
-    from backend.config.db import get_db_connection
-except ImportError:
-    from services.analytics_service import AnalyticsService
-    from routers.auth_router import require_roles, get_current_user
-    from config.db import get_db_connection
+from backend.modules.dashboard.analytics_service import AnalyticsService
+from backend.modules.auth.auth_router import require_roles, get_current_user
+from backend.config.db import DB_TYPE, get_db_connection
 
 router = APIRouter(prefix="/api/revenue", tags=["Revenue & Analytics"])
+
+
+def _normalize_row(row):
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row
+    if hasattr(row, "keys"):
+        try:
+            return {key: row[key] for key in row.keys()}
+        except Exception:
+            pass
+    if hasattr(row, "_mapping"):
+        try:
+            return {key: row._mapping[key] for key in row._mapping.keys()}
+        except Exception:
+            pass
+    return dict(row)
+
+
+def _table_has_columns(cursor, table_name: str, required_columns: List[str]) -> bool:
+    try:
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = {column_info[1] for column_info in cursor.fetchall()}
+        return all(column in columns for column in required_columns)
+    except Exception:
+        return False
+
 
 def _resolve_target_user(user: dict, view_user_id: Optional[int] = None) -> Optional[int]:
     role = (user.get("role") or "").lower()
@@ -92,14 +115,10 @@ def get_user_rankings(user: dict = Depends(get_current_user)):
     if user_role not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Chỉ Quản trị viên (Admin) hoặc Quản lý (Manager) mới có quyền xem Bảng xếp hạng người dùng!")
 
-    try:
-        from backend.config.db import get_db_connection
-    except ImportError:
-        from config.db import get_db_connection
-
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = """
+    last_order_sql = "strftime('%Y-%m-%d', MAX(o.order_date)) as last_order_date" if DB_TYPE != 'mssql' else "CONVERT(VARCHAR(10), MAX(o.order_date), 120) as last_order_date"
+    query = f"""
         SELECT 
             u.id, 
             u.full_name, 
@@ -108,14 +127,14 @@ def get_user_rankings(user: dict = Depends(get_current_user)):
             COUNT(o.id) as total_orders,
             COALESCE(SUM(o.net_amount), 0) as total_revenue,
             COALESCE(AVG(o.net_amount), 0) as avg_order_value,
-            CONVERT(VARCHAR(10), MAX(o.order_date), 120) as last_order_date
+            {last_order_sql}
         FROM users u
         LEFT JOIN orders o ON u.id = o.user_id AND o.status = 'completed'
         GROUP BY u.id, u.full_name, u.email, u.role
         ORDER BY total_revenue DESC, total_orders DESC
     """
     cursor.execute(query)
-    rankings = cursor.fetchall()
+    rankings = [_normalize_row(r) for r in cursor.fetchall()]
     conn.close()
 
     for r in rankings:
@@ -135,18 +154,17 @@ def get_orders(
     user: dict = Depends(get_current_user)
 ):
     try:
-        from backend.config.db import get_db_connection
-    except ImportError:
-        from config.db import get_db_connection
-
-    try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        query = """
+        db_type = DB_TYPE
+        order_date_select = "strftime('%Y-%m-%d %H:%M:%S', o.order_date) as order_date" if db_type != 'mssql' else "CONVERT(VARCHAR(19), o.order_date, 120) as order_date"
+        order_date_group = "strftime('%Y-%m-%d %H:%M:%S', o.order_date)" if db_type != 'mssql' else "CONVERT(VARCHAR(19), o.order_date, 120)"
+        product_summary_expr = "GROUP_CONCAT(p.name || ' (x' || oi.quantity || ')', ', ')" if db_type != 'mssql' else "STRING_AGG(CONCAT(p.name, ' (x', oi.quantity, ')'), ', ')"
+        query = f"""
             SELECT o.id, o.order_code, o.channel, o.total_amount, o.discount_amount, o.net_amount,
-                   o.payment_method, o.status, CONVERT(VARCHAR(19), o.order_date, 120) as order_date,
+                   o.payment_method, o.status, {order_date_select},
                    c.name as customer_name, c.phone as customer_phone,
-                   COALESCE(STRING_AGG(CONCAT(p.name, ' (x', oi.quantity, ')'), ', '), N'Sản phẩm đặt hàng') as product_summary
+                   COALESCE({product_summary_expr}, 'Sản phẩm đặt hàng') as product_summary
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.id
             LEFT JOIN order_items oi ON o.id = oi.order_id
@@ -172,16 +190,18 @@ def get_orders(
         if status and status != "All":
             query += " AND o.status = ?"
             params.append(status)
-        query += """
+        if db_type == "mssql":
+            limit_clause = f"ORDER BY o.id DESC OFFSET 0 ROWS FETCH NEXT {limit} ROWS ONLY"
+        else:
+            limit_clause = f"ORDER BY o.id DESC LIMIT {limit} OFFSET 0"
+        query += f"""
             GROUP BY o.id, o.order_code, o.channel, o.total_amount, o.discount_amount, o.net_amount,
-                     o.payment_method, o.status, CONVERT(VARCHAR(19), o.order_date, 120),
-                     c.name, c.phone
-            ORDER BY o.id DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+                     o.payment_method, o.status, {order_date_group}, c.name, c.phone
+            {limit_clause}
         """
-        params.append(limit)
 
         cursor.execute(query, tuple(params))
-        orders = cursor.fetchall()
+        orders = [_normalize_row(o) for o in cursor.fetchall()]
         conn.close()
 
         for o in orders:
@@ -192,7 +212,10 @@ def get_orders(
         return {"success": True, "data": orders}
     except Exception as e:
         print(f"⚠️ [Orders API Error]: {e}", flush=True)
-        return {"success": True, "data": []}
+        raise HTTPException(
+            status_code=500,
+            detail="Không thể tải danh sách đơn hàng. Vui lòng thử lại hoặc liên hệ quản trị viên."
+        ) from e
 
 
 class OrderItemInput(BaseModel):
@@ -217,10 +240,6 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
 
     import random
     from datetime import datetime
-    try:
-        from backend.config.db import get_db_connection
-    except ImportError:
-        from config.db import get_db_connection
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -230,45 +249,55 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
         total_amount = 0.0
         items_data = []
 
+        def _fetch_one(query: str, params=()):
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+            return _normalize_row(row)
+
         for item in req.items:
             prod_id = item.productId
             quantity = item.quantity if item.quantity > 0 else 1
 
             if prod_id and prod_id > 0:
-                # 1. Chọn từ kho sản phẩm có sẵn
-                cursor.execute("SELECT id, selling_price, cost_price, name FROM products WHERE id = ?", (prod_id,))
-                prod = cursor.fetchone()
+                prod = _fetch_one("SELECT id, selling_price, cost_price, name FROM products WHERE id = ?", (prod_id,))
                 if not prod:
                     raise HTTPException(status_code=404, detail=f"Không tìm thấy sản phẩm có ID {prod_id}")
                 unit_price = float(item.unitPrice if item.unitPrice is not None else prod["selling_price"])
-                cost_price = float(prod["cost_price"] or unit_price * 0.7)
+                cost_price = float(prod.get("cost_price") or unit_price * 0.7)
             else:
-                # 2. Người dùng tự nhập tên sản phẩm và đơn giá
                 prod_name = (item.productName or "Sản phẩm đặt hàng").strip()
                 unit_price = float(item.unitPrice if item.unitPrice is not None else 100000.0)
                 if unit_price <= 0:
                     unit_price = 100000.0
 
-                # Kiểm tra xem sản phẩm đã có trong DB chưa
-                cursor.execute("SELECT TOP 1 id, selling_price, cost_price FROM products WHERE name = ?", (prod_name,))
-                existing = cursor.fetchone()
+                existing_sql = "SELECT id, selling_price, cost_price FROM products WHERE name = ? LIMIT 1" if DB_TYPE != "mssql" else "SELECT TOP 1 id, selling_price, cost_price FROM products WHERE name = ?"
+                existing = _fetch_one(existing_sql, (prod_name,))
                 if existing:
                     prod_id = existing["id"]
-                    cost_price = float(existing["cost_price"] or unit_price * 0.7)
+                    cost_price = float(existing.get("cost_price") or unit_price * 0.7)
                 else:
                     cost_price = round(unit_price * 0.7)
                     sku = f"SKU-{random.randint(1000, 9999)}"
-                    cursor.execute("""
-                        INSERT INTO products (sku, name, category_id, cost_price, selling_price, stock_quantity, user_id)
-                        OUTPUT INSERTED.id
-                        VALUES (?, ?, 1, ?, ?, 100, ?)
-                    """, (sku, prod_name, cost_price, unit_price, user_id))
-                    row_prod = cursor.fetchone()
-                    prod_id = row_prod["id"]
+                    product_columns = ["sku", "name", "cost_price", "selling_price", "stock_quantity", "user_id"]
+                    product_values = [sku, prod_name, cost_price, unit_price, 100, user_id]
+                    if _table_has_columns(cursor, "products", ["category_id"]):
+                        product_columns.insert(2, "category_id")
+                        product_values.insert(2, 1)
+
+                    cols_sql = ", ".join(product_columns)
+                    placeholders = ", ".join(["?"] * len(product_values))
+                    insert_sql = f"INSERT INTO products ({cols_sql}) VALUES ({placeholders})"
+                    if DB_TYPE == "mssql":
+                        insert_sql += " OUTPUT INSERTED.id"
+                    cursor.execute(insert_sql, tuple(product_values))
+                    if DB_TYPE == "mssql":
+                        row_prod = _normalize_row(cursor.fetchone())
+                        prod_id = row_prod["id"] if row_prod else None
+                    else:
+                        prod_id = cursor.lastrowid
 
             total_price = unit_price * quantity
             total_amount += total_price
-
             items_data.append({
                 "product_id": prod_id,
                 "quantity": quantity,
@@ -279,18 +308,23 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
 
         order_code = f"ORD-{datetime.now().strftime('%Y%m%d%H%M')}-{random.randint(100, 999)}"
         net_amount = total_amount
+        date_sql = "datetime('now')" if DB_TYPE != "mssql" else "GETDATE()"
 
-        # 1. Thêm vào bảng orders và lấy ngay order_id bằng OUTPUT INSERTED.id
-        cursor.execute("""
-            INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
-            OUTPUT INSERTED.id
-            VALUES (?, ?, ?, ?, 0, ?, ?, 'completed', GETDATE(), ?)
-        """, (order_code, req.customerId, req.channel, total_amount, net_amount, req.paymentMethod, user_id))
+        if DB_TYPE == "mssql":
+            cursor.execute("""
+                INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
+                OUTPUT INSERTED.id
+                VALUES (?, ?, ?, ?, 0, ?, ?, 'completed', GETDATE(), ?)
+            """, (order_code, req.customerId, req.channel, total_amount, net_amount, req.paymentMethod, user_id))
+            row = _normalize_row(cursor.fetchone())
+            order_id = row["id"] if row else None
+        else:
+            cursor.execute("""
+                INSERT INTO orders (order_code, customer_id, channel, total_amount, discount_amount, net_amount, payment_method, status, order_date, user_id)
+                VALUES (?, ?, ?, ?, 0, ?, ?, 'completed', datetime('now'), ?)
+            """, (order_code, req.customerId, req.channel, total_amount, net_amount, req.paymentMethod, user_id))
+            order_id = cursor.lastrowid
 
-        row = cursor.fetchone()
-        order_id = row["id"] if row else None
-
-        # 2. Thêm vào bảng order_items và trừ tồn kho
         for it in items_data:
             cursor.execute("""
                 INSERT INTO order_items (order_id, product_id, quantity, unit_price, cost_price, total_price)
@@ -303,15 +337,17 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
                 WHERE id = ?
             """, (it["quantity"], it["quantity"], it["product_id"]))
 
-        # 3. Cập nhật chi tiêu khách hàng
         if req.customerId:
-            cursor.execute("""
-                UPDATE customers 
-                SET total_spent = total_spent + ?,
-                    orders_count = orders_count + 1,
-                    last_order_date = GETDATE()
-                WHERE id = ?
-            """, (net_amount, req.customerId))
+            customer_columns = "total_spent", "orders_count", "last_order_date"
+            if _table_has_columns(cursor, "customers", ["total_spent", "orders_count", "last_order_date"]):
+                date_expr = "GETDATE()" if DB_TYPE == "mssql" else "datetime('now')"
+                cursor.execute(f"""
+                    UPDATE customers 
+                    SET total_spent = total_spent + ?,
+                        orders_count = orders_count + 1,
+                        last_order_date = {date_expr}
+                    WHERE id = ?
+                """, (net_amount, req.customerId))
 
         conn.commit()
         conn.close()

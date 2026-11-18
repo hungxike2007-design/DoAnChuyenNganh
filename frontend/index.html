@@ -10,12 +10,11 @@
 <body>
   <script>
     // Kiểm tra xem đã đăng nhập chưa và điều hướng đúng phân quyền
-    const token = localStorage.getItem('dacn_token');
     const userStr = localStorage.getItem('dacn_user');
     let user = null;
     try { user = JSON.parse(userStr); } catch (e) {}
 
-    if (token && user) {
+    if (user) {
       const role = (user.role || 'user').toLowerCase();
       if (role === 'admin' || role === 'manager') {
         window.location.replace('/frontend/dashboard/dashboard.html');

@@ -73,6 +73,7 @@ CREATE TABLE products (
     stock_quantity INT NOT NULL DEFAULT 0,
     image_url NVARCHAR(500) DEFAULT '',
     is_active INT DEFAULT 1,
+    user_id INT NULL FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
     created_at DATETIME2 DEFAULT GETDATE()
 );
 GO
@@ -88,6 +89,7 @@ CREATE TABLE customers (
     total_spent DECIMAL(18,2) DEFAULT 0,
     orders_count INT DEFAULT 0,
     last_order_date DATETIME2,
+    user_id INT NULL FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
     created_at DATETIME2 DEFAULT GETDATE()
 );
 GO
@@ -104,6 +106,7 @@ CREATE TABLE orders (
     payment_method NVARCHAR(50) DEFAULT 'COD',
     status NVARCHAR(50) DEFAULT 'completed' CHECK(status IN ('completed', 'processing', 'shipping', 'cancelled', 'refunded')),
     order_date DATETIME2 DEFAULT GETDATE(),
+    user_id INT NULL FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
     created_at DATETIME2 DEFAULT GETDATE()
 );
 GO
@@ -204,5 +207,20 @@ BEGIN
 END;
 GO
 
-PRINT N'✅ Đã khởi tạo cấu trúc toàn bộ các bảng thành công trong SQL Server!';
+-- 14. Thiết lập Composite Indexes tối ưu truy vấn phân tích doanh thu
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_orders_analytics' AND object_id = OBJECT_ID('orders'))
+    CREATE NONCLUSTERED INDEX IX_orders_analytics ON dbo.orders(order_date, status, user_id) 
+    INCLUDE (net_amount, channel, customer_id);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_order_items_calculation' AND object_id = OBJECT_ID('order_items'))
+    CREATE NONCLUSTERED INDEX IX_order_items_calculation ON dbo.order_items(order_id, product_id) 
+    INCLUDE (quantity, unit_price, cost_price, total_price);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_customers_rfm' AND object_id = OBJECT_ID('customers'))
+    CREATE NONCLUSTERED INDEX IX_customers_rfm ON dbo.customers(segment, total_spent, orders_count, user_id);
+GO
+
+PRINT N'✅ Đã khởi tạo cấu trúc toàn bộ các bảng và Indexes thành công trong SQL Server!';
 GO

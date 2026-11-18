@@ -64,7 +64,7 @@ def clean_ai_text(text: str) -> str:
     return cleaned.strip()
 
 
-def generate_ai_response(prompt: str, system_instruction: str = "") -> str:
+def generate_ai_response(prompt: str, system_instruction: str = "", response_mime_type: str = None) -> str:
     """
     Gọi API Gemini để phân tích dữ liệu và đề xuất chiến lược kinh doanh.
     Có cơ chế tự động thử model dự phòng (Fallback) nếu model chính gặp lỗi (404/503/quá tải).
@@ -82,7 +82,9 @@ def generate_ai_response(prompt: str, system_instruction: str = "") -> str:
                 config = {}
                 if system_instruction:
                     config["system_instruction"] = system_instruction
-                    
+                if response_mime_type:
+                    config["response_mime_type"] = response_mime_type
+
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt,

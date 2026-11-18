@@ -13,12 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 
-try:
-    from backend.modules.dashboard.pivot_service import PivotService
-    from backend.modules.auth.auth_router import require_roles
-except ImportError:
-    from services.pivot_service import PivotService
-    from routers.auth_router import require_roles
+from backend.modules.dashboard.pivot_service import PivotService
+from backend.modules.auth.auth_router import require_roles
 
 router = APIRouter(prefix="/api/analytics/pivot", tags=["Dynamic Pivot Analytics"])
 

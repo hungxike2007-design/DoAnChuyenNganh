@@ -5,15 +5,12 @@
  */
 
 const API_BASE = ''; // Dùng relative path để tự động theo host và port của server
+localStorage.removeItem('dacn_token'); // Xóa JWT cũ từng được lưu không an toàn.
 
 // Quản lý Token & Người dùng trong LocalStorage
-function getToken() {
-  return localStorage.getItem('dacn_token');
-}
+function getToken() { return null; }
 
-function setToken(token) {
-  localStorage.setItem('dacn_token', token);
-}
+function setToken(_token) { localStorage.removeItem('dacn_token'); }
 
 function getUser() {
   const userStr = localStorage.getItem('dacn_user');
@@ -28,28 +25,25 @@ function setUser(user) {
   localStorage.setItem('dacn_user', JSON.stringify(user));
 }
 
-function logout() {
+async function logout() {
   localStorage.removeItem('dacn_token');
   localStorage.removeItem('dacn_user');
-  const isFrontend = window.location.pathname.startsWith('/frontend/');
-  window.location.href = isFrontend ? '/frontend/auth/login.html' : '/frontend/auth/login.html';
+  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) {}
+  window.location.href = '/frontend/auth/login.html';
 }
 
 // Wrapper Fetch tự động gán Bearer Token và xử lý lỗi
 async function apiRequest(endpoint, options = {}) {
-  const token = getToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
+      credentials: 'same-origin',
       headers
     });
 
@@ -81,12 +75,14 @@ function showToast(message, type = 'info') {
 
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `
-    <div style="display:flex; align-items:center; gap:8px;">
-      <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}"></i>
-      <span>${message}</span>
-    </div>
-  `;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; gap:8px;';
+  const icon = document.createElement('i');
+  icon.className = `fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}`;
+  const text = document.createElement('span');
+  text.textContent = String(message ?? '');
+  row.append(icon, text);
+  toast.appendChild(row);
 
   container.appendChild(toast);
 
@@ -218,8 +214,8 @@ function formatVND(number) {
 
 // Kiểm tra phiên đăng nhập và bảo vệ trang
 function requireAuth() {
-  const token = getToken();
-  if (!token) {
+  const user = getUser();
+  if (!user) {
     const isFrontend = window.location.pathname.startsWith('/frontend/');
     window.location.href = isFrontend ? '/frontend/auth/login.html' : '/frontend/auth/login.html';
     return false;

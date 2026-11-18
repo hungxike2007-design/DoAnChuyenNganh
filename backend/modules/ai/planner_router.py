@@ -12,12 +12,8 @@ Tách riêng các endpoint API cho bài toán Lập Kế Hoạch Kinh Doanh:
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
-try:
-    from backend.modules.ai.planner_service import PlannerService
-    from backend.modules.auth.auth_router import require_roles
-except ImportError:
-    from services.planner_service import PlannerService
-    from routers.auth_router import require_roles
+from backend.modules.ai.planner_service import PlannerService
+from backend.modules.auth.auth_router import require_roles
 
 router = APIRouter(prefix="/api/planner", tags=["Revenue Goal Planner"])
 

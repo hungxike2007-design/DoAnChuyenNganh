@@ -31,3 +31,21 @@ def test_jwt_round_trip_and_expiration():
         assert False, "Expired token should be rejected"
     except ValueError:
         pass
+
+
+def test_register_blocks_privilege_escalation(monkeypatch, tmp_path):
+    import sqlite3
+    from backend.modules.auth import auth_service
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript("""
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT, email TEXT UNIQUE,
+            password_hash TEXT, role TEXT DEFAULT 'user', created_at TEXT
+        );
+    """)
+
+    monkeypatch.setattr(auth_service, "get_db_connection", lambda: conn)
+    res = auth_service.AuthService.register_user("Attacker", "attacker@evil.com", "secret123", role="admin")
+    assert res["user"]["role"] == "user", "Security failure: public registration must not grant admin role!"

@@ -79,7 +79,6 @@ async function submitImportOrders() {
 
   const btnSubmit = document.getElementById('btn-submit-import-orders');
   const progressBox = document.getElementById('order-import-progress');
-  const token = getToken();
 
   try {
     if (btnSubmit) {
@@ -91,14 +90,9 @@ async function submitImportOrders() {
     const formData = new FormData();
     formData.append('file', selectedOrderFile);
 
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetch('/api/import/orders', {
       method: 'POST',
-      headers,
+      credentials: 'same-origin',
       body: formData
     });
 
@@ -207,7 +201,6 @@ async function submitImportProducts() {
 
   const btnSubmit = document.getElementById('btn-submit-import-products');
   const progressBox = document.getElementById('product-import-progress');
-  const token = getToken();
 
   try {
     if (btnSubmit) {
@@ -219,14 +212,9 @@ async function submitImportProducts() {
     const formData = new FormData();
     formData.append('file', selectedProductFile);
 
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetch('/api/import/products', {
       method: 'POST',
-      headers,
+      credentials: 'same-origin',
       body: formData
     });
 
