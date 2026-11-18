@@ -168,14 +168,19 @@ def generate_marketing_campaign(req: MarketingCampaignRequest, user: dict = Depe
                 from backend.config.db import get_db_connection
                 conn = get_db_connection()
                 cur = conn.cursor()
-                cur.execute("SELECT name, category, price, stock_quantity, description FROM products WHERE id = ?", (req.product_id,))
+                cur.execute("""
+                    SELECT p.name, c.name as category, p.selling_price as price, p.stock_quantity
+                    FROM products p
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    WHERE p.id = ?
+                """, (req.product_id,))
                 row = cur.fetchone()
                 if row:
-                    product_data["name"] = row[0] or req.product_name
-                    product_data["category"] = row[1] or req.category
-                    product_data["price"] = float(row[2]) if row[2] else req.price
-                    product_data["stock_quantity"] = row[3] or 0
-                    product_data["description"] = row[4] or ""
+                    product_data["name"] = row.get("name") or req.product_name
+                    product_data["category"] = row.get("category") or req.category
+                    product_data["price"] = float(row.get("price") or req.price)
+                    product_data["stock_quantity"] = row.get("stock_quantity") or 0
+                    product_data["description"] = ""
                 conn.close()
             except Exception:
                 pass
