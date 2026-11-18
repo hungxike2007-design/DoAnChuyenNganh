@@ -286,9 +286,10 @@ def create_order(req: CreateOrderRequest, user: dict = Depends(get_current_user)
 
                     cols_sql = ", ".join(product_columns)
                     placeholders = ", ".join(["?"] * len(product_values))
-                    insert_sql = f"INSERT INTO products ({cols_sql}) VALUES ({placeholders})"
                     if DB_TYPE == "mssql":
-                        insert_sql += " OUTPUT INSERTED.id"
+                        insert_sql = f"INSERT INTO products ({cols_sql}) OUTPUT INSERTED.id VALUES ({placeholders})"
+                    else:
+                        insert_sql = f"INSERT INTO products ({cols_sql}) VALUES ({placeholders})"
                     cursor.execute(insert_sql, tuple(product_values))
                     if DB_TYPE == "mssql":
                         row_prod = _normalize_row(cursor.fetchone())

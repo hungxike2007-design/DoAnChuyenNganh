@@ -40,7 +40,9 @@ def seed_database():
     cursor = conn.cursor()
 
     # Kiểm tra nếu đã có users thì không seed lại
-    cursor.execute("SELECT id FROM users LIMIT 1")
+    from backend.config.db import DB_TYPE
+    check_sql = "SELECT TOP 1 id FROM users" if DB_TYPE == "mssql" else "SELECT id FROM users LIMIT 1"
+    cursor.execute(check_sql)
     if cursor.fetchone():
         print("ℹ️ CSDL đã có dữ liệu mẫu. Bỏ qua bước seed.")
         conn.close()
